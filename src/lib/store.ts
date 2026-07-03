@@ -9,6 +9,7 @@ import {
   fetchBusiness,
   fetchTasks,
   fetchNotifications,
+  fetchChatMessages,
   initializeDemo,
 } from './api'
 
@@ -323,6 +324,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         // Tasks might not exist yet
       }
 
+      // Load chat history
+      let chatHistory: ChatMessage[] = []
+      try {
+        chatHistory = await fetchChatMessages(user.id)
+      } catch {
+        // Chat history might not exist yet
+      }
+
       const notifications = notifData?.notifications ?? notifData ?? []
       const unreadCount = Array.isArray(notifications)
         ? notifications.filter((n: Notification) => !n.read && !n.dismissed).length
@@ -332,6 +341,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         user,
         businesses,
         tasks,
+        chatMessages: chatHistory,
         notifications: Array.isArray(notifications) ? notifications : [],
         unreadCount,
       })

@@ -289,6 +289,25 @@ export async function exportBusinessPlan(businessId: string): Promise<string> {
   return res.text()
 }
 
+// ── Chat Messages ──────────────────────────────────────────────
+
+export async function fetchChatMessages(userId?: string): Promise<ChatMessage[]> {
+  const url = userId ? `/api/chat-messages?userId=${userId}` : '/api/chat-messages'
+  return apiRequest<ChatMessage[]>(url)
+}
+
+export async function saveChatMessage(data: { userId: string; role: string; content: string; context?: string }): Promise<ChatMessage> {
+  return apiRequest<ChatMessage>('/api/chat-messages', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function clearChatMessages(userId?: string): Promise<{ success: boolean }> {
+  const url = userId ? `/api/chat-messages?userId=${userId}` : '/api/chat-messages'
+  return apiRequest<{ success: boolean }>(url, { method: 'DELETE' })
+}
+
 // ── Demo / Init ────────────────────────────────────────────────
 
 export async function initializeDemo(): Promise<{

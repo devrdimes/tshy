@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useTheme } from "next-themes"
 import { useAppStore, type Business, type PlanStep, type Task, type Notification, type Milestone, type Financial, type ChatMessage, type User } from "@/lib/store"
 import { STAGES, CATEGORIES, PRIORITIES, NOTIFICATION_TYPES, TASK_STATUSES, STEP_STATUSES, MILESTONE_STATUSES, MILESTONE_CATEGORIES, INDUSTRIES, REVENUE_MODELS, TARGET_MARKETS, APP_CONFIG } from "@/lib/constants"
-import { fetchBusiness, updateBusiness, updatePlanStep, createTask, updateTask, deleteTask, chatWithAI, generateAITasks, getBusinessAnalysis, markNotificationRead, markAllNotificationsRead, dismissNotification, generateNotifications, generateProjections, createMilestone, updateMilestone, updateUser, exportBusinessPlan, getExportUrl } from "@/lib/api"
+import { fetchBusiness, updateBusiness, updatePlanStep, createTask, updateTask, deleteTask, chatWithAI, generateAITasks, getBusinessAnalysis, markNotificationRead, markAllNotificationsRead, dismissNotification, generateNotifications, generateProjections, createMilestone, updateMilestone, updateUser, exportBusinessPlan, getExportUrl, createBusiness, saveChatMessage, clearChatMessages } from "@/lib/api"
 import ReactMarkdown from "react-markdown"
 import {
-  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, Settings, Bot, ChevronRight, ChevronLeft, Plus, Sparkles, CheckCircle2, Circle, Lock, Clock, AlertTriangle, TrendingUp, Users, Target, Rocket, Building2, Calendar, ArrowUpRight, ArrowDownRight, Search, MessageSquare, Send, X, Eye, Trash2, ChevronDown, Play, Pause, SkipForward, BarChart3, PieChart, Lightbulb, BookOpen, ExternalLink, Star, Zap, Heart, Shield, Award, Brain, Loader2, Menu, CheckCheck, MoreVertical, Info, Download, Activity, FileText, Gauge, TrendingDown, AlertOctagon, ThumbsUp
+  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, Settings, Bot, ChevronRight, ChevronLeft, Plus, Sparkles, CheckCircle2, Circle, Lock, Clock, AlertTriangle, TrendingUp, Users, Target, Rocket, Building2, Calendar, ArrowUpRight, ArrowDownRight, Search, MessageSquare, Send, X, Eye, Trash2, ChevronDown, Play, Pause, SkipForward, BarChart3, PieChart, Lightbulb, BookOpen, ExternalLink, Star, Zap, Heart, Shield, Award, Brain, Loader2, Menu, CheckCheck, MoreVertical, Info, Download, Activity, FileText, Gauge, TrendingDown, AlertOctagon, ThumbsUp, Sun, Moon
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,6 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -42,36 +44,142 @@ const slideIn = { initial: { opacity: 0, x: -20 }, animate: { opacity: 1, x: 0 }
 const scaleIn = { initial: { opacity: 0, scale: 0.95 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 0.95 } }
 const stagger = { animate: { transition: { staggerChildren: 0.05 } } }
 
+// ─── CELEBRATION OVERLAY ──────────────────────────────────
+function CelebrationOverlay({ show, onComplete }: { show: boolean; onComplete: () => void }) {
+  useEffect(() => {
+    if (show) {
+      const timer = setTimeout(onComplete, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [show, onComplete])
+  if (!show) return null
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[100]">
+      {Array.from({ length: 50 }).map((_, i) => (
+        <div
+          key={i}
+          className="absolute w-2 h-2 rounded-full animate-confetti"
+          style={{
+            left: `${Math.random() * 100}%`,
+            backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'][i % 6],
+            animationDelay: `${Math.random() * 0.5}s`,
+            animationDuration: `${1 + Math.random() * 2}s`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ─── NEW BUSINESS DIALOG ──────────────────────────────────
+function NewBusinessDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [bizName, setBizName] = useState("")
+  const [bizDescription, setBizDescription] = useState("")
+  const [bizIndustry, setBizIndustry] = useState("")
+  const [bizStage, setBizStage] = useState("idea")
+  const [bizTargetMarket, setBizTargetMarket] = useState("")
+  const [bizRevenueModel, setBizRevenueModel] = useState("")
+  const [bizCapital, setBizCapital] = useState("")
+  const [creating, setCreating] = useState(false)
+
+  const handleCreate = async () => {
+    if (!bizName) return
+    setCreating(true)
+    try {
+      await createBusiness({ name: bizName, description: bizDescription, industry: bizIndustry, stage: bizStage, targetMarket: bizTargetMarket, revenueModel: bizRevenueModel, initialCapital: Number(bizCapital) || 0 })
+      await useAppStore.getState().initialize()
+      onOpenChange(false)
+      setBizName(""); setBizDescription(""); setBizIndustry(""); setBizStage("idea"); setBizTargetMarket(""); setBizRevenueModel(""); setBizCapital("")
+    } catch (e) { console.error(e) }
+    setCreating(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Create New Business</DialogTitle>
+          <DialogDescription>Add a new business to plan and track with AI guidance</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div><label className="text-sm font-medium mb-1 block">Business Name *</label><Input value={bizName} onChange={e => setBizName(e.target.value)} placeholder="e.g. TechFlow SaaS" /></div>
+          <div><label className="text-sm font-medium mb-1 block">Description</label><Textarea value={bizDescription} onChange={e => setBizDescription(e.target.value)} placeholder="What does your business do?" rows={2} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-sm font-medium mb-1 block">Industry</label><Select value={bizIndustry} onValueChange={setBizIndustry}><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{INDUSTRIES.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select></div>
+            <div><label className="text-sm font-medium mb-1 block">Stage</label><Select value={bizStage} onValueChange={setBizStage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STAGES).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent></Select></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-sm font-medium mb-1 block">Target Market</label><Select value={bizTargetMarket} onValueChange={setBizTargetMarket}><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{TARGET_MARKETS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
+            <div><label className="text-sm font-medium mb-1 block">Revenue Model</label><Select value={bizRevenueModel} onValueChange={setBizRevenueModel}><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{REVENUE_MODELS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select></div>
+          </div>
+          <div><label className="text-sm font-medium mb-1 block">Initial Capital ($)</label><Input type="number" value={bizCapital} onChange={e => setBizCapital(e.target.value)} placeholder="e.g. 100000" /></div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button onClick={handleCreate} disabled={creating || !bizName} className="bg-emerald-600 hover:bg-emerald-700">{creating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Creating...</> : <><Rocket className="w-4 h-4 mr-2" />Create Business</>}</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ─── MAIN APP ────────────────────────────────────────────
 export default function PlanWiseApp() {
   const { initialize, isLoading, user, activeView, setActiveView, sidebarOpen, setSidebarOpen, chatOpen, setChatOpen, currentBusiness, businesses, setCurrentBusiness, notifications, unreadCount, tasks, setTasks, setNotifications, setUnreadCount } = useAppStore()
+  const [celebrating, setCelebrating] = useState(false)
+  const [newBizOpen, setNewBizOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   useEffect(() => { initialize() }, [initialize])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.altKey) {
+        const views = ['dashboard', 'planner', 'tasks', 'financials', 'milestones', 'analysis', 'notifications', 'settings'] as const
+        const num = parseInt(e.key)
+        if (num >= 1 && num <= 8) {
+          e.preventDefault()
+          setActiveView(views[num - 1])
+        }
+        if (e.key === 'c') {
+          e.preventDefault()
+          setChatOpen(!chatOpen)
+        }
+        if (e.key === 'd') {
+          e.preventDefault()
+          setTheme(theme === 'dark' ? 'light' : 'dark')
+        }
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [setActiveView, chatOpen, setChatOpen, theme, setTheme])
 
   if (isLoading) return <LoadingScreen />
 
   if (activeView === "onboarding") return <OnboardingFlow />
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted">
       <TooltipProvider delayDuration={200}>
         <div className="flex flex-1">
           {/* Sidebar */}
-          <Sidebar />
+          <Sidebar newBizOpen={newBizOpen} setNewBizOpen={setNewBizOpen} />
           {/* Main Content */}
           <main className="flex-1 flex flex-col min-h-screen">
             <Header />
             <div className="flex-1 p-4 md:p-6 overflow-auto">
               <AnimatePresence mode="wait">
                 <motion.div key={activeView} {...fadeIn} transition={{ duration: 0.2 }}>
-                  {activeView === "dashboard" && <Dashboard />}
-                  {activeView === "planner" && <Planner />}
+                  {activeView === "dashboard" && <Dashboard onCelebrate={() => setCelebrating(true)} />}
+                  {activeView === "planner" && <Planner onCelebrate={() => setCelebrating(true)} />}
                   {activeView === "tasks" && <TasksView />}
                   {activeView === "financials" && <Financials />}
-                  {activeView === "milestones" && <MilestonesView />}
+                  {activeView === "milestones" && <MilestonesView onCelebrate={() => setCelebrating(true)} />}
                   {activeView === "notifications" && <NotificationsView />}
                   {activeView === "analysis" && <AIAnalysisView />}
-                  {activeView === "settings" && <SettingsView />}
+                  {activeView === "settings" && <SettingsView onAddBusiness={() => setNewBizOpen(true)} />}
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -80,6 +188,10 @@ export default function PlanWiseApp() {
         </div>
         {/* AI Chat Panel */}
         <AIChatPanel />
+        {/* Celebration Overlay */}
+        <CelebrationOverlay show={celebrating} onComplete={() => setCelebrating(false)} />
+        {/* New Business Dialog */}
+        <NewBusinessDialog open={newBizOpen} onOpenChange={setNewBizOpen} />
       </TooltipProvider>
     </div>
   )
@@ -95,14 +207,14 @@ function LoadingScreen() {
           <Brain className="w-8 h-8 text-emerald-400 absolute top-4 left-1/2 -translate-x-1/2" />
         </div>
         <h1 className="text-2xl font-bold text-white mb-2">{APP_CONFIG.name}</h1>
-        <p className="text-slate-400">Initializing your AI business advisor...</p>
+        <p className="text-muted-foreground">Initializing your AI business advisor...</p>
       </motion.div>
     </div>
   )
 }
 
 // ─── SIDEBAR ───────────────────────────────────────────
-function Sidebar() {
+function Sidebar({ newBizOpen, setNewBizOpen }: { newBizOpen: boolean; setNewBizOpen: (v: boolean) => void }) {
   const { sidebarOpen, setSidebarOpen, activeView, setActiveView, currentBusiness, businesses, setCurrentBusiness, user, unreadCount } = useAppStore()
   const [bizOpen, setBizOpen] = useState(false)
 
@@ -127,25 +239,25 @@ function Sidebar() {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="p-0 w-72">
-          <SidebarContent navItems={navItems} bizOpen={bizOpen} setBizOpen={setBizOpen} />
+          <SidebarContent navItems={navItems} bizOpen={bizOpen} setBizOpen={setBizOpen} setNewBizOpen={setNewBizOpen} />
         </SheetContent>
       </Sheet>
 
       {/* Desktop sidebar */}
-      <motion.aside initial={false} animate={{ width: sidebarOpen ? 280 : 72 }} transition={{ duration: 0.2 }} className={cn("hidden md:flex flex-col border-r border-slate-200 bg-white/80 backdrop-blur-sm shrink-0 overflow-hidden")}>
-        <SidebarContent navItems={navItems} bizOpen={bizOpen} setBizOpen={setBizOpen} />
+      <motion.aside initial={false} animate={{ width: sidebarOpen ? 280 : 72 }} transition={{ duration: 0.2 }} className={cn("hidden md:flex flex-col border-r border-border bg-card/80 backdrop-blur-sm shrink-0 overflow-hidden")}>
+        <SidebarContent navItems={navItems} bizOpen={bizOpen} setBizOpen={setBizOpen} setNewBizOpen={setNewBizOpen} />
       </motion.aside>
     </>
   )
 }
 
-function SidebarContent({ navItems, bizOpen, setBizOpen }: { navItems: { id: string; label: string; icon: React.ElementType; badge?: number }[]; bizOpen: boolean; setBizOpen: (v: boolean) => void }) {
+function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navItems: { id: string; label: string; icon: React.ElementType; badge?: number }[]; bizOpen: boolean; setBizOpen: (v: boolean) => void; setNewBizOpen: (v: boolean) => void }) {
   const { sidebarOpen, setSidebarOpen, activeView, setActiveView, currentBusiness, businesses, setCurrentBusiness, user, unreadCount } = useAppStore()
 
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="p-4 border-b border-slate-100">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0">
             <Brain className="w-5 h-5 text-white" />
@@ -153,7 +265,7 @@ function SidebarContent({ navItems, bizOpen, setBizOpen }: { navItems: { id: str
           {sidebarOpen !== false && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <h1 className="font-bold text-lg bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">{APP_CONFIG.name}</h1>
-              <p className="text-[10px] text-slate-400 -mt-1">AI Business Planning</p>
+              <p className="text-[10px] text-muted-foreground -mt-1">AI Business Planning</p>
             </motion.div>
           )}
         </div>
@@ -161,12 +273,12 @@ function SidebarContent({ navItems, bizOpen, setBizOpen }: { navItems: { id: str
 
       {/* Business selector */}
       <div className="px-3 py-3">
-        <button onClick={() => setBizOpen(!bizOpen)} className={cn("w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors", "bg-slate-50 hover:bg-slate-100 border border-slate-200")}>
+        <button onClick={() => setBizOpen(!bizOpen)} className={cn("w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors", "bg-muted hover:bg-accent border border-border")}>
           <Building2 className="w-4 h-4 text-emerald-600 shrink-0" />
           {sidebarOpen !== false ? (
             <>
-              <span className="truncate flex-1 text-left">{currentBusiness?.name || "Select Business"}</span>
-              <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", bizOpen && "rotate-180")} />
+              <span className="truncate flex-1 text-left text-foreground">{currentBusiness?.name || "Select Business"}</span>
+              <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", bizOpen && "rotate-180")} />
             </>
           ) : null}
         </button>
@@ -175,10 +287,13 @@ function SidebarContent({ navItems, bizOpen, setBizOpen }: { navItems: { id: str
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
               <div className="mt-1 space-y-1">
                 {businesses.map((b) => (
-                  <button key={b.id} onClick={() => { setCurrentBusiness(b); setBizOpen(false) }} className={cn("w-full text-left px-3 py-2 rounded-md text-sm transition-colors", currentBusiness?.id === b.id ? "bg-emerald-50 text-emerald-700 font-medium" : "hover:bg-slate-50 text-slate-600")}>
+                  <button key={b.id} onClick={() => { setCurrentBusiness(b); setBizOpen(false) }} className={cn("w-full text-left px-3 py-2 rounded-md text-sm transition-colors", currentBusiness?.id === b.id ? "bg-emerald-50 text-emerald-700 font-medium dark:bg-emerald-950 dark:text-emerald-400" : "hover:bg-accent text-muted-foreground")}>
                     {b.name}
                   </button>
                 ))}
+                <button onClick={() => { setBizOpen(false); setNewBizOpen(true) }} className="w-full text-left px-3 py-2 rounded-md text-sm text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950 transition-colors flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> Add Business
+                </button>
               </div>
             </motion.div>
           )}
@@ -193,7 +308,7 @@ function SidebarContent({ navItems, bizOpen, setBizOpen }: { navItems: { id: str
           return (
             <Tooltip key={item.id}>
               <TooltipTrigger asChild>
-                <button onClick={() => setActiveView(item.id as typeof activeView)} className={cn("w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all", isActive ? "bg-emerald-50 text-emerald-700 shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700")}>
+                <button onClick={() => setActiveView(item.id as typeof activeView)} className={cn("w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all", isActive ? "bg-emerald-50 text-emerald-700 shadow-sm dark:bg-emerald-950 dark:text-emerald-400" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
                   <Icon className={cn("w-5 h-5 shrink-0", isActive && "text-emerald-600")} />
                   {sidebarOpen !== false && <span className="truncate">{item.label}</span>}
                   {item.badge && item.badge > 0 ? <Badge className="ml-auto bg-red-500 text-white text-[10px] h-5 min-w-5 flex items-center justify-center px-1.5">{item.badge}</Badge> : null}
@@ -207,22 +322,22 @@ function SidebarContent({ navItems, bizOpen, setBizOpen }: { navItems: { id: str
 
       {/* AI Chat button */}
       <div className="px-3 pb-3">
-        <button onClick={() => useAppStore.getState().setChatOpen(true)} className={cn("w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 shadow-md")}>
+        <button onClick={() => useAppStore.getState().setChatOpen(true)} className={cn("w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 shadow-md pulse-glow")}>
           <Sparkles className="w-5 h-5 shrink-0" />
           {sidebarOpen !== false && <span>AI Advisor</span>}
         </button>
       </div>
 
       {/* User & Collapse */}
-      <div className="border-t border-slate-100 p-3">
+      <div className="border-t border-border p-3">
         <div className="flex items-center gap-2">
           <Avatar className="w-8 h-8">
             <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs">{user?.name?.charAt(0) || "E"}</AvatarFallback>
           </Avatar>
           {sidebarOpen !== false && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.name || "Entrepreneur"}</p>
-              <p className="text-[10px] text-slate-400 truncate">{user?.role || "CEO"}</p>
+              <p className="text-sm font-medium truncate text-foreground">{user?.name || "Entrepreneur"}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{user?.role || "CEO"}</p>
             </div>
           )}
           <Button variant="ghost" size="icon" className="hidden md:flex h-7 w-7 shrink-0" onClick={() => setSidebarOpen(!sidebarOpen)}>
@@ -237,15 +352,35 @@ function SidebarContent({ navItems, bizOpen, setBizOpen }: { navItems: { id: str
 // ─── HEADER ──────────────────────────────────────────────
 function Header() {
   const { activeView, currentBusiness, user, setChatOpen, unreadCount, setActiveView } = useAppStore()
+  const { theme, setTheme } = useTheme()
   const viewTitles: Record<string, string> = { dashboard: "Dashboard", planner: "Step-by-Step Plan", tasks: "Tasks", financials: "Financial Projections", milestones: "Milestones", notifications: "Notifications", analysis: "AI Business Analysis", settings: "Settings" }
+  const viewPaths: Record<string, string[]> = { dashboard: ["Home"], planner: ["Home", "Step-by-Step Plan"], tasks: ["Home", "Tasks"], financials: ["Home", "Financial Projections"], milestones: ["Home", "Milestones"], notifications: ["Home", "Notifications"], analysis: ["Home", "AI Analysis"], settings: ["Home", "Settings"] }
 
   return (
-    <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm px-4 md:px-6 py-3">
+    <header className="border-b border-border bg-card/80 backdrop-blur-sm px-4 md:px-6 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 md:gap-4 ml-10 md:ml-0">
-          <h2 className="text-xl font-bold text-slate-800">{viewTitles[activeView] || "Dashboard"}</h2>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">{viewTitles[activeView] || "Dashboard"}</h2>
+            <Breadcrumb className="mt-0.5">
+              <BreadcrumbList>
+                {(viewPaths[activeView] || ["Home"]).map((path, i, arr) => (
+                  <span key={i} className="flex items-center gap-1.5">
+                    {i > 0 && <BreadcrumbSeparator />}
+                    <BreadcrumbItem>
+                      {i === arr.length - 1 ? (
+                        <BreadcrumbPage className="text-xs text-muted-foreground">{path}</BreadcrumbPage>
+                      ) : (
+                        <BreadcrumbLink className="text-xs cursor-pointer" onClick={() => setActiveView("dashboard")}>{path}</BreadcrumbLink>
+                      )}
+                    </BreadcrumbItem>
+                  </span>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
           {currentBusiness && activeView !== "settings" && (
-            <Badge variant="secondary" className="hidden sm:flex bg-emerald-50 text-emerald-700 border-emerald-200">
+            <Badge variant="secondary" className="hidden sm:flex bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800">
               {currentBusiness.name}
             </Badge>
           )}
@@ -256,6 +391,10 @@ function Header() {
               <Download className="w-4 h-4" /> Export Plan
             </Button>
           )}
+          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+            <Sun className="w-5 h-5 dark:hidden" />
+            <Moon className="w-5 h-5 hidden dark:block" />
+          </Button>
           <Button variant="ghost" size="icon" className="relative" onClick={() => setActiveView("notifications")}>
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center">{unreadCount}</span>}
@@ -272,8 +411,8 @@ function Header() {
 // ─── FOOTER ─────────────────────────────────────────────
 function Footer() {
   return (
-    <footer className="border-t border-slate-100 bg-white/60 px-4 md:px-6 py-3 mt-auto">
-      <div className="flex items-center justify-between text-xs text-slate-400">
+    <footer className="border-t border-border bg-card/60 px-4 md:px-6 py-3 mt-auto">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{APP_CONFIG.name} v{APP_CONFIG.version}</span>
         <span className="flex items-center gap-1">Made with <Heart className="w-3 h-3 text-red-400" /> for entrepreneurs</span>
       </div>
@@ -282,7 +421,7 @@ function Footer() {
 }
 
 // ─── DASHBOARD ──────────────────────────────────────────
-function Dashboard() {
+function Dashboard({ onCelebrate }: { onCelebrate?: () => void }) {
   const { currentBusiness, user, tasks, notifications, setActiveView } = useAppStore()
   const biz = currentBusiness
   const stage = biz ? STAGES[biz.stage as keyof typeof STAGES] : null
@@ -335,7 +474,7 @@ function Dashboard() {
       <div className="grid md:grid-cols-3 gap-6">
         {/* Current Step Card */}
         <motion.div variants={fadeIn} className="md:col-span-2">
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Current Step</CardTitle>
@@ -344,9 +483,9 @@ function Dashboard() {
             </CardHeader>
             <CardContent>
               {biz?.planSteps ? (
-                <CurrentStepCard step={biz.planSteps.find(s => s.status === "current" || s.status === "in_progress")} businessId={biz.id} />
+                <CurrentStepCard step={biz.planSteps.find(s => s.status === "current" || s.status === "in_progress")} businessId={biz.id} onCelebrate={onCelebrate} />
               ) : (
-                <div className="text-center py-8 text-slate-400">
+                <div className="text-center py-8 text-muted-foreground">
                   <Rocket className="w-10 h-10 mx-auto mb-2" />
                   <p>No business plan yet. Create one to get started!</p>
                 </div>
@@ -357,7 +496,7 @@ function Dashboard() {
 
         {/* Quick Actions & Recent Notifications */}
         <motion.div variants={fadeIn} className="space-y-4">
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Quick Actions</CardTitle>
             </CardHeader>
@@ -368,7 +507,7 @@ function Dashboard() {
               <QuickAction icon={Flag} label="Check Milestones" onClick={() => setActiveView("milestones")} />
             </CardContent>
           </Card>
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Recent Alerts</CardTitle>
@@ -378,15 +517,15 @@ function Dashboard() {
             <CardContent>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {notifications.filter(n => !n.dismissed).slice(0, 4).map(n => (
-                  <div key={n.id} className={cn("flex items-start gap-2 p-2 rounded-lg text-xs", n.read ? "bg-slate-50" : "bg-emerald-50")}>
+                  <div key={n.id} className={cn("flex items-start gap-2 p-2 rounded-lg text-xs", n.read ? "bg-muted" : "bg-emerald-50")}>
                     {(() => { const IC = getIcon(NOTIFICATION_TYPES[n.type as keyof typeof NOTIFICATION_TYPES]?.icon || "Info"); return <IC className="w-4 h-4 shrink-0 mt-0.5" /> })()}
                     <div className="min-w-0">
                       <p className="font-medium truncate">{n.title}</p>
-                      <p className="text-slate-500 line-clamp-1">{n.message}</p>
+                      <p className="text-muted-foreground line-clamp-1">{n.message}</p>
                     </div>
                   </div>
                 ))}
-                {notifications.filter(n => !n.dismissed).length === 0 && <p className="text-xs text-slate-400 text-center py-4">No notifications</p>}
+                {notifications.filter(n => !n.dismissed).length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No notifications</p>}
               </div>
             </CardContent>
           </Card>
@@ -395,7 +534,7 @@ function Dashboard() {
 
       {/* Tasks & Financial Overview */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Upcoming Tasks</CardTitle>
@@ -407,11 +546,11 @@ function Dashboard() {
               {tasks.filter(t => t.status !== "completed" && t.status !== "cancelled").slice(0, 5).map(t => (
                 <TaskItem key={t.id} task={t} compact />
               ))}
-              {tasks.filter(t => t.status !== "completed").length === 0 && <p className="text-sm text-slate-400 text-center py-4">All tasks completed! 🎉</p>}
+              {tasks.filter(t => t.status !== "completed").length === 0 && <p className="text-sm text-muted-foreground text-center py-4">All tasks completed! 🎉</p>}
             </div>
           </CardContent>
         </Card>
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Financial Overview</CardTitle>
@@ -422,7 +561,7 @@ function Dashboard() {
             {biz?.financials && biz.financials.length > 0 ? (
               <FinancialMiniChart financials={biz.financials} />
             ) : (
-              <div className="text-center py-8 text-slate-400">
+              <div className="text-center py-8 text-muted-foreground">
                 <DollarSign className="w-10 h-10 mx-auto mb-2" />
                 <p>Set up financial projections</p>
               </div>
@@ -447,7 +586,7 @@ function StatCard({ icon: Icon, label, value, trend, color, delay, subtitle }: {
   const c = colorClasses[color] || colorClasses.emerald
   return (
     <motion.div variants={fadeIn} transition={{ delay }}>
-      <Card className="border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 overflow-hidden group">
+      <Card className="border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 overflow-hidden group">
         <CardContent className="p-4 relative">
           <div className={cn("absolute top-0 left-0 w-1 h-full bg-gradient-to-b opacity-80", c.gradient)} />
           <div className="flex items-center justify-between mb-2">
@@ -457,8 +596,8 @@ function StatCard({ icon: Icon, label, value, trend, color, delay, subtitle }: {
             {trend === "up" && <div className="flex items-center gap-0.5 text-emerald-500"><ArrowUpRight className="w-3.5 h-3.5" /><span className="text-[10px] font-medium">up</span></div>}
             {trend === "down" && <div className="flex items-center gap-0.5 text-red-500"><ArrowDownRight className="w-3.5 h-3.5" /><span className="text-[10px] font-medium">alert</span></div>}
           </div>
-          <p className="text-2xl font-bold text-slate-800 tabular-nums">{value}</p>
-          <p className="text-xs text-slate-500">{label}</p>
+          <p className="text-2xl font-bold text-foreground tabular-nums">{value}</p>
+          <p className="text-xs text-muted-foreground">{label}</p>
           {subtitle && <p className="text-xs text-red-500 mt-0.5 font-medium">{subtitle}</p>}
         </CardContent>
       </Card>
@@ -466,11 +605,11 @@ function StatCard({ icon: Icon, label, value, trend, color, delay, subtitle }: {
   )
 }
 
-function CurrentStepCard({ step, businessId }: { step: PlanStep | undefined; businessId: string }) {
+function CurrentStepCard({ step, businessId, onCelebrate }: { step: PlanStep | undefined; businessId: string; onCelebrate?: () => void }) {
   const { refreshBusiness } = useAppStore()
   const [updating, setUpdating] = useState(false)
 
-  if (!step) return <div className="text-center py-8 text-slate-400"><CheckCircle2 className="w-10 h-10 mx-auto mb-2" /><p>All steps completed or no active step!</p></div>
+  if (!step) return <div className="text-center py-8 text-muted-foreground"><CheckCircle2 className="w-10 h-10 mx-auto mb-2" /><p>All steps completed or no active step!</p></div>
 
   const category = CATEGORIES[step.category as keyof typeof CATEGORIES]
   const checklistItems = JSON.parse(step.checklist || "[]") as string[]
@@ -490,6 +629,7 @@ function CurrentStepCard({ step, businessId }: { step: PlanStep | undefined; bus
     try {
       await updatePlanStep(businessId, step.id, { status: "completed" })
       await refreshBusiness()
+      onCelebrate?.()
     } catch (e) { console.error(e) }
     setUpdating(false)
   }
@@ -505,8 +645,8 @@ function CurrentStepCard({ step, businessId }: { step: PlanStep | undefined; bus
             <Badge variant="outline" className="text-[10px]">{category?.label || step.category}</Badge>
             <Badge className={cn("text-[10px]", STEP_STATUSES[step.status as keyof typeof STEP_STATUSES]?.bg, STEP_STATUSES[step.status as keyof typeof STEP_STATUSES]?.color)}>{STEP_STATUSES[step.status as keyof typeof STEP_STATUSES]?.label || step.status}</Badge>
           </div>
-          <h3 className="font-semibold text-lg text-slate-800">{step.title}</h3>
-          <p className="text-sm text-slate-500 mt-1">{step.description}</p>
+          <h3 className="font-semibold text-lg text-foreground">{step.title}</h3>
+          <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
         </div>
       </div>
       {step.guidance && (
@@ -526,10 +666,10 @@ function CurrentStepCard({ step, businessId }: { step: PlanStep | undefined; bus
         </div>
       )}
       <div>
-        <p className="text-sm font-medium text-slate-600 mb-2">Checklist ({completedItems}/{checklistItems.length})</p>
+        <p className="text-sm font-medium text-muted-foreground mb-2">Checklist ({completedItems}/{checklistItems.length})</p>
         <div className="space-y-1.5">
           {checklistItems.map((item, idx) => (
-            <div key={idx} className={cn("flex items-center gap-2 text-sm py-1 px-2 rounded", item.startsWith("✅") ? "text-emerald-600 bg-emerald-50" : item.startsWith("⬜") ? "text-slate-500 bg-slate-50" : "text-slate-600")}>
+            <div key={idx} className={cn("flex items-center gap-2 text-sm py-1 px-2 rounded", item.startsWith("✅") ? "text-emerald-600 bg-emerald-50" : item.startsWith("⬜") ? "text-muted-foreground bg-muted" : "text-muted-foreground")}>
               {item.startsWith("✅") ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
               <span>{item.replace(/^[✅⬜]\s*/, "")}</span>
             </div>
@@ -546,10 +686,10 @@ function CurrentStepCard({ step, businessId }: { step: PlanStep | undefined; bus
 
 function QuickAction({ icon: Icon, label, onClick }: { icon: React.ElementType; label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors text-left">
+    <button onClick={onClick} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-left">
       <Icon className="w-4 h-4 text-emerald-600" />
       <span>{label}</span>
-      <ChevronRight className="w-4 h-4 ml-auto text-slate-300" />
+      <ChevronRight className="w-4 h-4 ml-auto text-muted-foreground" />
     </button>
   )
 }
@@ -575,7 +715,7 @@ function FinancialMiniChart({ financials }: { financials: Financial[] }) {
 }
 
 // ─── PLANNER (Step-by-Step) ─────────────────────────────
-function Planner() {
+function Planner({ onCelebrate }: { onCelebrate?: () => void }) {
   const { currentBusiness, setCurrentBusiness } = useAppStore()
   const [selectedStep, setSelectedStep] = useState<PlanStep | null>(null)
   const [generatingTasks, setGeneratingTasks] = useState(false)
@@ -590,10 +730,10 @@ function Planner() {
   return (
     <div className="space-y-6">
       {/* Progress bar */}
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-slate-800">Plan Progress</h3>
+            <h3 className="font-semibold text-foreground">Plan Progress</h3>
             <span className="text-sm font-medium text-emerald-600">{completedSteps}/{steps.length} steps • {progress}%</span>
           </div>
           <Progress value={progress} className="h-3" />
@@ -601,7 +741,7 @@ function Planner() {
             {steps.map(s => (
               <Tooltip key={s.id}>
                 <TooltipTrigger asChild>
-                  <button onClick={() => setSelectedStep(s)} className={cn("h-2 flex-1 rounded-full transition-all", s.status === "completed" ? "bg-emerald-500" : s.status === "in_progress" || s.status === "current" ? "bg-amber-400" : "bg-slate-200")} />
+                  <button onClick={() => setSelectedStep(s)} className={cn("h-2 flex-1 rounded-full transition-all", s.status === "completed" ? "bg-emerald-500" : s.status === "in_progress" || s.status === "current" ? "bg-amber-400" : "bg-muted")} />
                 </TooltipTrigger>
                 <TooltipContent>{s.title} — {STEP_STATUSES[s.status as keyof typeof STEP_STATUSES]?.label}</TooltipContent>
               </Tooltip>
@@ -618,15 +758,15 @@ function Planner() {
           const isLocked = step.status === "locked"
           return (
             <motion.div key={step.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }}>
-              <Card className={cn("border shadow-sm transition-all cursor-pointer hover:shadow-md", isSelected ? "border-emerald-300 ring-1 ring-emerald-200" : "border-slate-200", isLocked && "opacity-60")}>
+              <Card className={cn("border shadow-sm transition-all cursor-pointer hover:shadow-md", isSelected ? "border-emerald-300 ring-1 ring-emerald-200" : "border-border", isLocked && "opacity-60")}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
                     {/* Step number / status icon */}
                     <div className="relative shrink-0">
-                      <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm", step.status === "completed" ? "bg-emerald-500 text-white" : step.status === "in_progress" || step.status === "current" ? "bg-amber-400 text-white" : "bg-slate-200 text-slate-400")}>
+                      <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm", step.status === "completed" ? "bg-emerald-500 text-white" : step.status === "in_progress" || step.status === "current" ? "bg-amber-400 text-white" : "bg-muted text-muted-foreground")}>
                         {step.status === "completed" ? <CheckCircle2 className="w-5 h-5" /> : isLocked ? <Lock className="w-5 h-5" /> : step.stepNumber}
                       </div>
-                      {idx < steps.length - 1 && <div className={cn("absolute top-10 left-1/2 -translate-x-1/2 w-0.5 h-4", step.status === "completed" ? "bg-emerald-300" : "bg-slate-200")} />}
+                      {idx < steps.length - 1 && <div className={cn("absolute top-10 left-1/2 -translate-x-1/2 w-0.5 h-4", step.status === "completed" ? "bg-emerald-300" : "bg-muted")} />}
                     </div>
                     {/* Step content */}
                     <div className="flex-1 min-w-0" onClick={() => !isLocked && setSelectedStep(step)}>
@@ -635,8 +775,8 @@ function Planner() {
                         <Badge className={cn("text-[10px]", STEP_STATUSES[step.status as keyof typeof STEP_STATUSES]?.bg, STEP_STATUSES[step.status as keyof typeof STEP_STATUSES]?.color)}>{STEP_STATUSES[step.status as keyof typeof STEP_STATUSES]?.label}</Badge>
                         <Badge variant="outline" className="text-[10px]"><Clock className="w-3 h-3 mr-1" />{step.estimatedDays}d</Badge>
                       </div>
-                      <h4 className="font-semibold text-slate-800">{step.title}</h4>
-                      <p className="text-sm text-slate-500 mt-0.5">{step.description}</p>
+                      <h4 className="font-semibold text-foreground">{step.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-0.5">{step.description}</p>
 
                       {/* Expanded content */}
                       <AnimatePresence>
@@ -646,13 +786,13 @@ function Planner() {
                               {step.guidance && <div className="bg-sky-50 border border-sky-200 rounded-lg p-3"><div className="flex items-start gap-2"><Lightbulb className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" /><p className="text-sm text-sky-700">{step.guidance}</p></div></div>}
                               {step.aiTips && <div className="bg-violet-50 border border-violet-200 rounded-lg p-3"><div className="flex items-start gap-2"><Sparkles className="w-4 h-4 text-violet-600 shrink-0 mt-0.5" /><p className="text-sm text-violet-700">{step.aiTips}</p></div></div>}
                               <StepChecklist step={step} businessId={biz.id} />
-                              <StepActions step={step} businessId={biz.id} />
+                              <StepActions step={step} businessId={biz.id} onCelebrate={onCelebrate} />
                             </div>
                           </motion.div>
                         )}
                       </AnimatePresence>
                     </div>
-                    <ChevronRight className={cn("w-5 h-5 text-slate-300 shrink-0 transition-transform", isSelected && "rotate-90")} />
+                    <ChevronRight className={cn("w-5 h-5 text-muted-foreground shrink-0 transition-transform", isSelected && "rotate-90")} />
                   </div>
                 </CardContent>
               </Card>
@@ -680,12 +820,12 @@ function StepChecklist({ step, businessId }: { step: PlanStep; businessId: strin
 
   return (
     <div>
-      <p className="text-sm font-medium text-slate-600 mb-2">Checklist</p>
+      <p className="text-sm font-medium text-muted-foreground mb-2">Checklist</p>
       <div className="space-y-1.5">
         {items.map((item, idx) => (
           <div key={idx} className="flex items-center gap-2 cursor-pointer group" onClick={() => toggleItem(idx)}>
             <Checkbox checked={item.startsWith("✅")} className="pointer-events-none" />
-            <span className={cn("text-sm", item.startsWith("✅") ? "line-through text-slate-400" : "text-slate-700")}>{item.replace(/^[✅⬜]\s*/, "")}</span>
+            <span className={cn("text-sm", item.startsWith("✅") ? "line-through text-muted-foreground" : "text-foreground")}>{item.replace(/^[✅⬜]\s*/, "")}</span>
           </div>
         ))}
       </div>
@@ -693,7 +833,7 @@ function StepChecklist({ step, businessId }: { step: PlanStep; businessId: strin
   )
 }
 
-function StepActions({ step, businessId }: { step: PlanStep; businessId: string }) {
+function StepActions({ step, businessId, onCelebrate }: { step: PlanStep; businessId: string; onCelebrate?: () => void }) {
   const { refreshBusiness } = useAppStore()
   const [loading, setLoading] = useState(false)
 
@@ -702,13 +842,14 @@ function StepActions({ step, businessId }: { step: PlanStep; businessId: string 
     try {
       await updatePlanStep(businessId, step.id, { status: status as PlanStep["status"] })
       await refreshBusiness()
+      if (status === "completed") onCelebrate?.()
     } catch (e) { console.error(e) }
     setLoading(false)
   }
 
   return (
     <div className="flex flex-wrap gap-2 pt-2">
-      {step.status === "locked" && <span className="text-sm text-slate-400 flex items-center gap-1"><Lock className="w-4 h-4" /> Complete previous step to unlock</span>}
+      {step.status === "locked" && <span className="text-sm text-muted-foreground flex items-center gap-1"><Lock className="w-4 h-4" /> Complete previous step to unlock</span>}
       {step.status === "current" && <Button size="sm" onClick={() => updateStatus("in_progress")} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">{loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Play className="w-4 h-4 mr-1" />}Start</Button>}
       {step.status === "in_progress" && <>
         <Button size="sm" onClick={() => updateStatus("completed")} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">{loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}Complete</Button>
@@ -748,10 +889,10 @@ function TasksView() {
     <div className="space-y-6">
       {/* Task Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center"><Clock className="w-5 h-5 text-amber-600" /></div><div><p className="text-2xl font-bold">{pending}</p><p className="text-xs text-slate-500">Pending</p></div></CardContent></Card>
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center"><Loader2 className="w-5 h-5 text-sky-600" /></div><div><p className="text-2xl font-bold">{inProgress}</p><p className="text-xs text-slate-500">In Progress</p></div></CardContent></Card>
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center"><CheckCircle2 className="w-5 h-5 text-emerald-600" /></div><div><p className="text-2xl font-bold">{completed}</p><p className="text-xs text-slate-500">Completed</p></div></CardContent></Card>
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-600" /></div><div><p className="text-2xl font-bold">{overdue}</p><p className="text-xs text-slate-500">Overdue</p></div></CardContent></Card>
+        <Card className="border-border shadow-sm"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center"><Clock className="w-5 h-5 text-amber-600" /></div><div><p className="text-2xl font-bold">{pending}</p><p className="text-xs text-muted-foreground">Pending</p></div></CardContent></Card>
+        <Card className="border-border shadow-sm"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center"><Loader2 className="w-5 h-5 text-sky-600" /></div><div><p className="text-2xl font-bold">{inProgress}</p><p className="text-xs text-muted-foreground">In Progress</p></div></CardContent></Card>
+        <Card className="border-border shadow-sm"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center"><CheckCircle2 className="w-5 h-5 text-emerald-600" /></div><div><p className="text-2xl font-bold">{completed}</p><p className="text-xs text-muted-foreground">Completed</p></div></CardContent></Card>
+        <Card className="border-border shadow-sm"><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-600" /></div><div><p className="text-2xl font-bold">{overdue}</p><p className="text-xs text-muted-foreground">Overdue</p></div></CardContent></Card>
       </div>
 
       {/* Filter & Add */}
@@ -797,7 +938,14 @@ function TasksView() {
       {/* Task List */}
       <div className="space-y-2">
         {filteredTasks.length === 0 ? (
-          <div className="text-center py-12 text-slate-400"><CheckCircle2 className="w-12 h-12 mx-auto mb-3" /><p className="text-lg">No tasks {filter !== "all" ? `with status "${filter}"` : "yet"}</p></div>
+          <div className="text-center py-16">
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-1">No tasks {filter !== "all" ? `with status "${filter}"` : "yet"}</h3>
+            <p className="text-sm text-muted-foreground mb-4">{filter === "all" ? "Create your first task to start tracking your progress" : "Try a different filter to see tasks"}</p>
+            {filter === "all" && <Button onClick={() => setShowNewTask(true)} size="sm" className="bg-emerald-600 hover:bg-emerald-700"><Plus className="w-4 h-4 mr-2" /> Create Task</Button>}
+          </div>
         ) : filteredTasks.map(task => <TaskItem key={task.id} task={task} />)}
       </div>
     </div>
@@ -831,11 +979,11 @@ function TaskItem({ task, compact = false }: { task: Task; compact?: boolean }) 
 
   if (compact) {
     return (
-      <div className={cn("flex items-center gap-3 p-2 rounded-lg text-sm", task.status === "completed" ? "bg-slate-50 opacity-60" : isOverdue ? "bg-red-50" : "bg-white border border-slate-100")}>
+      <div className={cn("flex items-center gap-3 p-2 rounded-lg text-sm", task.status === "completed" ? "bg-muted opacity-60" : isOverdue ? "bg-red-50" : "bg-card")}>
         <button onClick={() => task.status !== "completed" && handleStatusChange("completed")} className="shrink-0">
-          {task.status === "completed" ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Circle className="w-5 h-5 text-slate-300 hover:text-emerald-400" />}
+          {task.status === "completed" ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Circle className="w-5 h-5 text-muted-foreground hover:text-emerald-400" />}
         </button>
-        <span className={cn("flex-1 truncate", task.status === "completed" && "line-through text-slate-400")}>{task.title}</span>
+        <span className={cn("flex-1 truncate", task.status === "completed" && "line-through text-muted-foreground")}>{task.title}</span>
         <Badge className={cn("text-[10px]", priority?.bg, priority?.color)}>{priority?.label}</Badge>
       </div>
     )
@@ -846,18 +994,18 @@ function TaskItem({ task, compact = false }: { task: Task; compact?: boolean }) 
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <button onClick={() => task.status === "pending" ? handleStatusChange("in_progress") : task.status === "in_progress" ? handleStatusChange("completed") : null} className="shrink-0 mt-0.5" disabled={task.status === "completed"}>
-            {task.status === "completed" ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : task.status === "in_progress" ? <Loader2 className="w-5 h-5 text-sky-500" /> : <Circle className="w-5 h-5 text-slate-300 hover:text-emerald-400" />}
+            {task.status === "completed" ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : task.status === "in_progress" ? <Loader2 className="w-5 h-5 text-sky-500" /> : <Circle className="w-5 h-5 text-muted-foreground hover:text-emerald-400" />}
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h4 className={cn("font-medium text-sm", task.status === "completed" && "line-through text-slate-400")}>{task.title}</h4>
+              <h4 className={cn("font-medium text-sm", task.status === "completed" && "line-through text-muted-foreground")}>{task.title}</h4>
               <Badge className={cn("text-[10px]", priority?.bg, priority?.color)}>{priority?.label}</Badge>
               {task.aiGenerated && <Badge className="text-[10px] bg-violet-100 text-violet-700"><Sparkles className="w-3 h-3 mr-1" />AI</Badge>}
               {isOverdue && <Badge className="text-[10px] bg-red-100 text-red-700"><AlertTriangle className="w-3 h-3 mr-1" />Overdue</Badge>}
             </div>
-            {task.description && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{task.description}</p>}
+            {task.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>}
             {task.aiSuggestion && <div className="bg-violet-50 border border-violet-200 rounded-md p-2 mt-2 text-xs text-violet-700"><Sparkles className="w-3 h-3 inline mr-1" />{task.aiSuggestion}</div>}
-            <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
+            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
               {task.dueDate && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(task.dueDate).toLocaleDateString()}</span>}
               <Badge variant="outline" className="text-[10px]">{TASK_STATUSES[task.status as keyof typeof TASK_STATUSES]?.label}</Badge>
             </div>
@@ -917,14 +1065,14 @@ function Financials() {
     <div className="space-y-6">
       {/* Financial Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-4"><div className="flex items-center gap-2 mb-1"><DollarSign className="w-4 h-4 text-emerald-600" /><span className="text-xs text-slate-500">Total Revenue</span></div><p className="text-xl font-bold">${totalRevenue.toLocaleString()}</p></CardContent></Card>
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-4"><div className="flex items-center gap-2 mb-1"><TrendingUp className="w-4 h-4 text-red-500" /><span className="text-xs text-slate-500">Total Expenses</span></div><p className="text-xl font-bold">${totalExpenses.toLocaleString()}</p></CardContent></Card>
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-4"><div className="flex items-center gap-2 mb-1"><BarChart3 className="w-4 h-4 text-sky-600" /><span className="text-xs text-slate-500">Net Profit</span></div><p className={cn("text-xl font-bold", totalRevenue - totalExpenses >= 0 ? "text-emerald-600" : "text-red-600")}>${(totalRevenue - totalExpenses).toLocaleString()}</p></CardContent></Card>
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-4"><div className="flex items-center gap-2 mb-1"><Clock className="w-4 h-4 text-amber-600" /><span className="text-xs text-slate-500">Runway</span></div><p className="text-xl font-bold">{runway > 50 ? "50+" : runway} months</p></CardContent></Card>
+        <Card className="border-border shadow-sm"><CardContent className="p-4"><div className="flex items-center gap-2 mb-1"><DollarSign className="w-4 h-4 text-emerald-600" /><span className="text-xs text-muted-foreground">Total Revenue</span></div><p className="text-xl font-bold">${totalRevenue.toLocaleString()}</p></CardContent></Card>
+        <Card className="border-border shadow-sm"><CardContent className="p-4"><div className="flex items-center gap-2 mb-1"><TrendingUp className="w-4 h-4 text-red-500" /><span className="text-xs text-muted-foreground">Total Expenses</span></div><p className="text-xl font-bold">${totalExpenses.toLocaleString()}</p></CardContent></Card>
+        <Card className="border-border shadow-sm"><CardContent className="p-4"><div className="flex items-center gap-2 mb-1"><BarChart3 className="w-4 h-4 text-sky-600" /><span className="text-xs text-muted-foreground">Net Profit</span></div><p className={cn("text-xl font-bold", totalRevenue - totalExpenses >= 0 ? "text-emerald-600" : "text-red-600")}>${(totalRevenue - totalExpenses).toLocaleString()}</p></CardContent></Card>
+        <Card className="border-border shadow-sm"><CardContent className="p-4"><div className="flex items-center gap-2 mb-1"><Clock className="w-4 h-4 text-amber-600" /><span className="text-xs text-muted-foreground">Runway</span><Tooltip><TooltipTrigger asChild><Info className="w-3 h-3 text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent><p className="text-xs">Based on current burn rate</p></TooltipContent></Tooltip></div><p className="text-xl font-bold">{runway > 50 ? "50+" : runway} months</p></CardContent></Card>
       </div>
 
       {/* Revenue vs Expenses Chart */}
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader><CardTitle className="text-lg">Revenue vs Expenses</CardTitle><CardDescription>Actual and projected financial performance</CardDescription></CardHeader>
         <CardContent>
           {chartData.length > 0 ? (
@@ -939,12 +1087,18 @@ function Financials() {
                 <Bar dataKey="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          ) : <div className="text-center py-12 text-slate-400"><DollarSign className="w-12 h-12 mx-auto mb-3" /><p>No financial data yet</p></div>}
+          ) : <div className="text-center py-16">
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+              <DollarSign className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-1">No financial data yet</h3>
+            <p className="text-sm text-muted-foreground">Generate AI projections to see your financial outlook</p>
+          </div>}
         </CardContent>
       </Card>
 
       {/* Profit Trend */}
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader><CardTitle className="text-lg">Profit Trend</CardTitle><CardDescription>Monthly profit trajectory with break-even reference</CardDescription></CardHeader>
         <CardContent>
           {chartData.length > 0 ? (
@@ -961,7 +1115,7 @@ function Financials() {
                 <Area type="monotone" dataKey="Profit" stroke="#10b981" fill="url(#profitGrad)" strokeWidth={2} connectNulls />
               </AreaChart>
             </ResponsiveContainer>
-          ) : <div className="text-center py-8 text-slate-400"><TrendingUp className="w-8 h-8 mx-auto mb-2" /><p>Profit trend will appear here</p></div>}
+          ) : <div className="text-center py-8 text-muted-foreground"><TrendingUp className="w-8 h-8 mx-auto mb-2" /><p>Profit trend will appear here</p></div>}
         </CardContent>
       </Card>
 
@@ -976,7 +1130,7 @@ function Financials() {
 }
 
 // ─── MILESTONES VIEW ────────────────────────────────────
-function MilestonesView() {
+function MilestonesView({ onCelebrate }: { onCelebrate?: () => void }) {
   const { refreshBusiness } = useAppStore()
   const currentBusiness = useAppStore(s => s.currentBusiness)
   const [showNew, setShowNew] = useState(false)
@@ -1006,6 +1160,7 @@ function MilestonesView() {
     try {
       await updateMilestone(biz.id, milestoneId, { status: status as Milestone["status"], achievedDate: status === "achieved" ? new Date().toISOString() : undefined })
       await refreshBusiness()
+      if (status === "achieved") onCelebrate?.()
     } catch (e) { console.error(e) }
   }
 
@@ -1013,14 +1168,14 @@ function MilestonesView() {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-4 text-center"><p className="text-3xl font-bold text-emerald-600">{achieved}</p><p className="text-xs text-slate-500">Achieved</p></CardContent></Card>
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-4 text-center"><p className="text-3xl font-bold text-amber-600">{inProgress}</p><p className="text-xs text-slate-500">In Progress</p></CardContent></Card>
-        <Card className="border-slate-200 shadow-sm"><CardContent className="p-4 text-center"><p className="text-3xl font-bold text-slate-600">{milestones.length - achieved - inProgress}</p><p className="text-xs text-slate-500">Upcoming</p></CardContent></Card>
+        <Card className="border-border shadow-sm"><CardContent className="p-4 text-center"><p className="text-3xl font-bold text-emerald-600">{achieved}</p><p className="text-xs text-muted-foreground">Achieved</p></CardContent></Card>
+        <Card className="border-border shadow-sm"><CardContent className="p-4 text-center"><p className="text-3xl font-bold text-amber-600">{inProgress}</p><p className="text-xs text-muted-foreground">In Progress</p></CardContent></Card>
+        <Card className="border-border shadow-sm"><CardContent className="p-4 text-center"><p className="text-3xl font-bold text-muted-foreground">{milestones.length - achieved - inProgress}</p><p className="text-xs text-muted-foreground">Upcoming</p></CardContent></Card>
       </div>
 
       {/* Add milestone */}
       <div className="flex justify-between">
-        <h3 className="text-lg font-semibold text-slate-800">Milestones</h3>
+        <h3 className="text-lg font-semibold text-foreground">Milestones</h3>
         <Button onClick={() => setShowNew(true)} size="sm" className="bg-emerald-600 hover:bg-emerald-700"><Plus className="w-4 h-4 mr-1" />Add Milestone</Button>
       </div>
 
@@ -1046,24 +1201,31 @@ function MilestonesView() {
       {/* Milestones List */}
       <div className="space-y-3">
         {milestones.length === 0 ? (
-          <div className="text-center py-12 text-slate-400"><Flag className="w-12 h-12 mx-auto mb-3" /><p>No milestones yet</p></div>
+          <div className="text-center py-16">
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+              <Flag className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-1">No milestones yet</h3>
+            <p className="text-sm text-muted-foreground mb-4">Define key milestones to track your business progress</p>
+            <Button onClick={() => setShowNew(true)} size="sm" className="bg-emerald-600 hover:bg-emerald-700"><Plus className="w-4 h-4 mr-2" /> Add Milestone</Button>
+          </div>
         ) : milestones.map(m => {
           const cat = MILESTONE_CATEGORIES[m.category as keyof typeof MILESTONE_CATEGORIES]
           const statusInfo = MILESTONE_STATUSES[m.status as keyof typeof MILESTONE_STATUSES]
           const progress = m.targetValue > 0 ? Math.min(100, Math.round((m.currentValue / m.targetValue) * 100)) : 0
           return (
-            <Card key={m.id} className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <Card key={m.id} className="border-border shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="outline" className="text-[10px]">{cat?.label || m.category}</Badge>
                       <Badge className={cn("text-[10px]", statusInfo?.bg, statusInfo?.color)}>{statusInfo?.label}</Badge>
-                      {m.targetDate && <span className="text-[10px] text-slate-400 flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(m.targetDate).toLocaleDateString()}</span>}
+                      {m.targetDate && <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(m.targetDate).toLocaleDateString()}</span>}
                     </div>
-                    <h4 className="font-semibold text-slate-800">{m.title}</h4>
-                    {m.description && <p className="text-sm text-slate-500 mt-0.5">{m.description}</p>}
-                    {m.targetValue > 0 && <div className="mt-2"><div className="flex items-center justify-between text-xs text-slate-500 mb-1"><span>{m.metric}: {m.currentValue.toLocaleString()} / {m.targetValue.toLocaleString()}</span><span>{progress}%</span></div><Progress value={progress} className="h-2" /></div>}
+                    <h4 className="font-semibold text-foreground">{m.title}</h4>
+                    {m.description && <p className="text-sm text-muted-foreground mt-0.5">{m.description}</p>}
+                    {m.targetValue > 0 && <div className="mt-2"><div className="flex items-center justify-between text-xs text-muted-foreground mb-1"><span>{m.metric}: {m.currentValue.toLocaleString()} / {m.targetValue.toLocaleString()}</span><span>{progress}%</span></div><Progress value={progress} className="h-2" /></div>}
                   </div>
                   <div className="flex gap-1 shrink-0 ml-3">
                     {m.status === "upcoming" && <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(m.id, "in_progress")}><Play className="w-4 h-4" /></Button>}
@@ -1136,7 +1298,7 @@ function NotificationsView() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Notifications</h3>
-          <p className="text-sm text-slate-500">{unread.length} unread notifications</p>
+          <p className="text-sm text-muted-foreground">{unread.length} unread notifications</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleMarkAllRead} disabled={unread.length === 0}><CheckCheck className="w-4 h-4 mr-1" />Mark All Read</Button>
@@ -1146,12 +1308,18 @@ function NotificationsView() {
 
       <div className="space-y-3 max-h-[600px] overflow-y-auto">
         {activeNotifications.length === 0 ? (
-          <div className="text-center py-12 text-slate-400"><Bell className="w-12 h-12 mx-auto mb-3" /><p>No notifications</p></div>
+          <div className="text-center py-16">
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+              <Bell className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-1">No notifications</h3>
+            <p className="text-sm text-muted-foreground">You're all caught up! New alerts will appear here.</p>
+          </div>
         ) : activeNotifications.map(n => {
           const typeInfo = NOTIFICATION_TYPES[n.type as keyof typeof NOTIFICATION_TYPES]
           const TypeIcon = getIcon(typeInfo?.icon || "Info")
           return (
-            <Card key={n.id} className={cn("border shadow-sm transition-all", n.read ? "border-slate-200 bg-white" : "border-emerald-200 bg-emerald-50/50")}>
+            <Card key={n.id} className={cn("border shadow-sm transition-all", n.read ? "border-border bg-card" : "border-emerald-200 bg-emerald-50/50")}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", typeInfo?.bg || "bg-sky-100")}>
@@ -1159,12 +1327,12 @@ function NotificationsView() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <h4 className="font-medium text-sm text-slate-800">{n.title}</h4>
+                      <h4 className="font-medium text-sm text-foreground">{n.title}</h4>
                       <Badge variant="outline" className="text-[10px]">{typeInfo?.label || n.type}</Badge>
                       {!n.read && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
                     </div>
-                    <p className="text-sm text-slate-600">{n.message}</p>
-                    <p className="text-[10px] text-slate-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground">{n.message}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{new Date(n.createdAt).toLocaleString()}</p>
                   </div>
                   <div className="flex gap-1 shrink-0">
                     {!n.read && <Button size="sm" variant="ghost" onClick={() => handleMarkRead(n.id)}><Eye className="w-4 h-4" /></Button>}
@@ -1238,7 +1406,7 @@ function AIAnalysisView() {
   return (
     <div className="space-y-6">
       {/* Header with overall score */}
-      <Card className="border-slate-200 shadow-sm overflow-hidden">
+      <Card className="border-border shadow-sm overflow-hidden">
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 text-white">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -1246,7 +1414,7 @@ function AIAnalysisView() {
                 <Gauge className="w-5 h-5 text-emerald-400" />
                 <h3 className="text-lg font-semibold">AI Business Analysis</h3>
               </div>
-              <p className="text-sm text-slate-400">Comprehensive SWOT analysis powered by AI</p>
+              <p className="text-sm text-muted-foreground">Comprehensive SWOT analysis powered by AI</p>
             </div>
             <Button onClick={runAnalysis} disabled={loading} variant="secondary" className="bg-white/10 hover:bg-white/20 text-white border-white/20">
               {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Analyzing...</> : <><Sparkles className="w-4 h-4 mr-2" />Re-run Analysis</>}
@@ -1256,13 +1424,13 @@ function AIAnalysisView() {
             <div className="mt-4 flex items-center gap-6">
               <div className="text-center">
                 <div className={cn("text-5xl font-bold", a.overallScore >= 75 ? "text-emerald-400" : a.overallScore >= 50 ? "text-amber-400" : "text-red-400")}>{a.overallScore}</div>
-                <p className="text-xs text-slate-400">Overall Score</p>
+                <p className="text-xs text-muted-foreground">Overall Score</p>
               </div>
               <div className="flex-1 grid grid-cols-5 gap-2">
                 {Object.entries(a.scores).map(([key, val]) => (
                   <div key={key} className="text-center">
                     <div className={cn("text-2xl font-bold", scoreColor(val))}>{val}</div>
-                    <p className="text-[10px] text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
                     <div className="h-1.5 rounded-full bg-white/10 mt-1 overflow-hidden">
                       <div className={cn("h-full rounded-full", scoreBg(val))} style={{ width: `${val}%` }} />
                     </div>
@@ -1275,9 +1443,9 @@ function AIAnalysisView() {
       </Card>
 
       {loading && !a && (
-        <Card className="border-slate-200"><CardContent className="p-12 text-center">
+        <Card className="border-border"><CardContent className="p-12 text-center">
           <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mx-auto mb-4" />
-          <p className="text-slate-500">AI is analyzing your business... This may take 10-15 seconds.</p>
+          <p className="text-muted-foreground">AI is analyzing your business... This may take 10-15 seconds.</p>
         </CardContent></Card>
       )}
 
@@ -1291,7 +1459,7 @@ function AIAnalysisView() {
         <>
           {/* Radar Chart + Summary */}
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="border-slate-200 shadow-sm">
+            <Card className="border-border shadow-sm">
               <CardHeader><CardTitle className="text-base">Performance Radar</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={280}>
@@ -1305,10 +1473,10 @@ function AIAnalysisView() {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-            <Card className="border-slate-200 shadow-sm">
+            <Card className="border-border shadow-sm">
               <CardHeader><CardTitle className="text-base">Executive Summary</CardTitle></CardHeader>
               <CardContent>
-                <div className="prose prose-sm max-w-none text-slate-600 [&_p]:mb-2">
+                <div className="prose prose-sm max-w-none text-muted-foreground [&_p]:mb-2">
                   <ReactMarkdown>{a.summary}</ReactMarkdown>
                 </div>
               </CardContent>
@@ -1324,21 +1492,21 @@ function AIAnalysisView() {
           </div>
 
           {/* Recommendations */}
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Lightbulb className="w-5 h-5 text-amber-500" />Strategic Recommendations</CardTitle></CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {a.recommendations.map((r, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-muted transition-colors">
                     <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h4 className="font-medium text-sm text-slate-800">{r.title}</h4>
-                        <Badge className={cn("text-[10px]", r.priority === "urgent" ? "bg-red-100 text-red-700" : r.priority === "high" ? "bg-orange-100 text-orange-700" : r.priority === "medium" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600")}>{r.priority}</Badge>
+                        <h4 className="font-medium text-sm text-foreground">{r.title}</h4>
+                        <Badge className={cn("text-[10px]", r.priority === "urgent" ? "bg-red-100 text-red-700" : r.priority === "high" ? "bg-orange-100 text-orange-700" : r.priority === "medium" ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground")}>{r.priority}</Badge>
                         <Badge variant="outline" className="text-[10px] capitalize">{r.category}</Badge>
                         <Badge variant="outline" className="text-[10px]"><Clock className="w-3 h-3 mr-1" />{r.timeline}</Badge>
                       </div>
-                      <p className="text-sm text-slate-600">{r.description}</p>
+                      <p className="text-sm text-muted-foreground">{r.description}</p>
                     </div>
                   </div>
                 ))}
@@ -1348,7 +1516,7 @@ function AIAnalysisView() {
 
           {/* Quick Wins */}
           {a.quickWins.length > 0 && (
-            <Card className="border-slate-200 shadow-sm">
+            <Card className="border-border shadow-sm">
               <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Zap className="w-5 h-5 text-amber-500" />Quick Wins</CardTitle><CardDescription>Low-effort, high-impact actions you can take today</CardDescription></CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-3 gap-3">
@@ -1358,8 +1526,8 @@ function AIAnalysisView() {
                         <Zap className="w-4 h-4 text-amber-500" />
                         <Badge className="text-[10px] bg-amber-100 text-amber-700 capitalize">{q.effort} effort</Badge>
                       </div>
-                      <h4 className="font-medium text-sm text-slate-800">{q.title}</h4>
-                      <p className="text-xs text-slate-600 mt-1">{q.description}</p>
+                      <h4 className="font-medium text-sm text-foreground">{q.title}</h4>
+                      <p className="text-xs text-muted-foreground mt-1">{q.description}</p>
                     </div>
                   ))}
                 </div>
@@ -1386,15 +1554,15 @@ function SWOTCard({ title, icon: Icon, color, items }: { title: string; icon: Re
         <CardTitle className="text-base flex items-center gap-2"><Icon className={cn("w-5 h-5", c.icon)} />{title} <Badge variant="outline" className="text-[10px] ml-auto">{items.length}</Badge></CardTitle>
       </CardHeader>
       <CardContent>
-        {items.length === 0 ? <p className="text-sm text-slate-400 text-center py-4">No items identified</p> : (
+        {items.length === 0 ? <p className="text-sm text-muted-foreground text-center py-4">No items identified</p> : (
           <div className="space-y-2">
             {items.map((item, i) => (
               <div key={i} className={cn("p-2.5 rounded-lg", c.bg)}>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <h4 className="font-medium text-sm text-slate-800 flex-1">{item.title}</h4>
+                  <h4 className="font-medium text-sm text-foreground flex-1">{item.title}</h4>
                   <Badge variant="outline" className={cn("text-[10px] capitalize", c.text)}>{item.tag}</Badge>
                 </div>
-                <p className="text-xs text-slate-600">{item.desc}</p>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -1440,7 +1608,7 @@ function ActivityTimeline() {
   if (recent.length === 0) return null
 
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Activity className="w-5 h-5 text-emerald-600" />
@@ -1455,12 +1623,12 @@ function ActivityTimeline() {
                 <div className={cn("w-7 h-7 rounded-full flex items-center justify-center shrink-0", act.color)}>
                   <act.icon className="w-3.5 h-3.5" />
                 </div>
-                {i < recent.length - 1 && <div className="w-0.5 flex-1 bg-slate-200 my-1" style={{ minHeight: "20px" }} />}
+                {i < recent.length - 1 && <div className="w-0.5 flex-1 bg-muted my-1" style={{ minHeight: "20px" }} />}
               </div>
               <div className="flex-1 min-w-0 pb-2">
-                <p className="text-sm font-medium text-slate-800 truncate">{act.title}</p>
-                <p className="text-xs text-slate-500 line-clamp-1">{act.desc}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">{new Date(act.time).toLocaleDateString()} at {new Date(act.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                <p className="text-sm font-medium text-foreground truncate">{act.title}</p>
+                <p className="text-xs text-muted-foreground line-clamp-1">{act.desc}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(act.time).toLocaleDateString()} at {new Date(act.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
               </div>
             </div>
           ))}
@@ -1471,7 +1639,7 @@ function ActivityTimeline() {
 }
 
 // ─── SETTINGS VIEW ──────────────────────────────────────
-function SettingsView() {
+function SettingsView({ onAddBusiness }: { onAddBusiness?: () => void }) {
   const { user, businesses } = useAppStore()
   const [name, setName] = useState(user?.name || "")
   const [company, setCompany] = useState(user?.company || "")
@@ -1491,23 +1659,23 @@ function SettingsView() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader><CardTitle>Profile Settings</CardTitle><CardDescription>Update your personal information</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4 mb-4">
             <Avatar className="w-16 h-16"><AvatarFallback className="bg-emerald-100 text-emerald-700 text-xl">{name.charAt(0) || "E"}</AvatarFallback></Avatar>
-            <div><p className="font-semibold text-lg">{name || "Entrepreneur"}</p><p className="text-sm text-slate-500">{role} {company ? `at ${company}` : ""}</p></div>
+            <div><p className="font-semibold text-lg">{name || "Entrepreneur"}</p><p className="text-sm text-muted-foreground">{role} {company ? `at ${company}` : ""}</p></div>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Full Name</label>
+            <label className="text-sm font-medium text-foreground">Full Name</label>
             <Input value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Company</label>
+            <label className="text-sm font-medium text-foreground">Company</label>
             <Input value={company} onChange={e => setCompany(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Role</label>
+            <label className="text-sm font-medium text-foreground">Role</label>
             <Input value={role} onChange={e => setRole(e.target.value)} />
           </div>
           <Button onClick={handleSave} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700">
@@ -1516,7 +1684,7 @@ function SettingsView() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader><CardTitle>Your Businesses</CardTitle><CardDescription>Manage your business plans</CardDescription></CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -1524,12 +1692,12 @@ function SettingsView() {
               const stage = STAGES[b.stage as keyof typeof STAGES]
               const completed = b.planSteps?.filter(s => s.status === "completed").length ?? 0
               return (
-                <div key={b.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50">
+                <div key={b.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted">
                   <div className="flex items-center gap-3">
                     <Building2 className="w-5 h-5 text-emerald-600" />
                     <div>
                       <p className="font-medium text-sm">{b.name}</p>
-                      <p className="text-xs text-slate-500">{completed}/{b.planSteps?.length || 10} steps • {stage?.label || b.stage}</p>
+                      <p className="text-xs text-muted-foreground">{completed}/{b.planSteps?.length || 10} steps • {stage?.label || b.stage}</p>
                     </div>
                   </div>
                   <Badge variant="outline" className={cn("text-[10px]", stage?.color, stage?.bg)}>{stage?.label}</Badge>
@@ -1537,6 +1705,9 @@ function SettingsView() {
               )
             })}
           </div>
+          <Button onClick={onAddBusiness} variant="outline" className="mt-4 w-full border-dashed gap-2">
+            <Plus className="w-4 h-4" /> Add Business
+          </Button>
         </CardContent>
       </Card>
     </div>
@@ -1545,9 +1716,10 @@ function SettingsView() {
 
 // ─── AI CHAT PANEL ──────────────────────────────────────
 function AIChatPanel() {
-  const { chatOpen, setChatOpen, chatMessages, addChatMessage, currentBusiness, currentStep } = useAppStore()
+  const { chatOpen, setChatOpen, chatMessages, addChatMessage, setChatMessages, currentBusiness, currentStep, user } = useAppStore()
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
+  const [clearing, setClearing] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -1558,29 +1730,56 @@ function AIChatPanel() {
     if (!input.trim() || sending) return
     const message = input.trim()
     setInput("")
-    addChatMessage({ id: Date.now().toString(), role: "user", content: message, context: "", createdAt: new Date().toISOString() })
+    const userMsg = { id: Date.now().toString(), role: "user" as const, content: message, context: "", createdAt: new Date().toISOString() }
+    addChatMessage(userMsg)
+    // Save user message to API
+    if (user?.id) {
+      saveChatMessage({ userId: user.id, role: "user", content: message }).catch(() => {})
+    }
     setSending(true)
     try {
       const response = await chatWithAI(message, currentBusiness?.id, currentStep?.id)
-      addChatMessage({ id: (Date.now() + 1).toString(), role: "assistant", content: response.content, context: "", createdAt: response.timestamp || new Date().toISOString() })
+      const assistantMsg = { id: (Date.now() + 1).toString(), role: "assistant" as const, content: response.content, context: "", createdAt: response.timestamp || new Date().toISOString() }
+      addChatMessage(assistantMsg)
+      // Save assistant message to API
+      if (user?.id) {
+        saveChatMessage({ userId: user.id, role: "assistant", content: response.content }).catch(() => {})
+      }
     } catch (e) {
       addChatMessage({ id: (Date.now() + 1).toString(), role: "assistant", content: "I apologize, but I encountered an error. Please try again.", context: "", createdAt: new Date().toISOString() })
     }
     setSending(false)
   }
 
+  const handleClearHistory = async () => {
+    if (!user?.id) return
+    setClearing(true)
+    try {
+      await clearChatMessages(user.id)
+      setChatMessages([])
+    } catch (e) { console.error(e) }
+    setClearing(false)
+  }
+
   return (
     <AnimatePresence>
       {chatOpen && (
-        <motion.div initial={{ opacity: 0, x: 400 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 400 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col">
+        <motion.div initial={{ opacity: 0, x: 400 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 400 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-card border-l border-border shadow-2xl z-50 flex flex-col">
           {/* Chat Header */}
-          <div className="p-4 border-b border-slate-200 bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+          <div className="p-4 border-b border-border bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center"><Sparkles className="w-5 h-5" /></div>
                 <div><h3 className="font-semibold">PlanWise AI Advisor</h3><p className="text-[10px] text-emerald-100">Your business planning expert</p></div>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setChatOpen(false)} className="text-white hover:bg-white/20"><X className="w-5 h-5" /></Button>
+              <div className="flex items-center gap-1">
+                {chatMessages.length > 0 && (
+                  <Button variant="ghost" size="icon" onClick={handleClearHistory} disabled={clearing} className="text-white hover:bg-white/20 h-7 w-7" title="Clear History">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => setChatOpen(false)} className="text-white hover:bg-white/20"><X className="w-5 h-5" /></Button>
+              </div>
             </div>
             {currentBusiness && <p className="text-[10px] text-emerald-100 mt-1">Context: {currentBusiness.name} • Step {currentBusiness.currentStep}/10</p>}
           </div>
@@ -1591,10 +1790,10 @@ function AIChatPanel() {
               {chatMessages.length === 0 && (
                 <div className="text-center py-8">
                   <Brain className="w-12 h-12 text-emerald-300 mx-auto mb-3" />
-                  <p className="text-sm text-slate-500 mb-3">Ask me anything about your business plan!</p>
+                  <p className="text-sm text-muted-foreground mb-3">Ask me anything about your business plan!</p>
                   <div className="space-y-2">
                     {["What should I focus on next?", "Analyze my business strategy", "Help me with financial planning"].map(q => (
-                      <button key={q} onClick={() => setInput(q)} className="block w-full text-left px-3 py-2 rounded-lg text-xs bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 transition-colors">{q}</button>
+                      <button key={q} onClick={() => setInput(q)} className="block w-full text-left px-3 py-2 rounded-lg text-xs bg-muted hover:bg-emerald-50 text-muted-foreground hover:text-emerald-700 transition-colors">{q}</button>
                     ))}
                   </div>
                 </div>
@@ -1602,7 +1801,7 @@ function AIChatPanel() {
               {chatMessages.map(msg => (
                 <div key={msg.id} className={cn("flex gap-2", msg.role === "user" ? "justify-end" : "justify-start")}>
                   {msg.role === "assistant" && <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0"><Sparkles className="w-4 h-4 text-emerald-600" /></div>}
-                  <div className={cn("rounded-xl px-3 py-2 max-w-[85%] text-sm", msg.role === "user" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-800")}>
+                  <div className={cn("rounded-xl px-3 py-2 max-w-[85%] text-sm", msg.role === "user" ? "bg-emerald-600 text-white" : "bg-muted text-foreground")}>
                     <div className="prose prose-sm max-w-none [&_p]:mb-2 [&_ul]:mb-2 [&_ol]:mb-2 [&_li]:mb-1 [&_strong]:font-semibold">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
@@ -1613,14 +1812,14 @@ function AIChatPanel() {
               {sending && (
                 <div className="flex gap-2">
                   <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0"><Sparkles className="w-4 h-4 text-emerald-600" /></div>
-                  <div className="bg-slate-100 rounded-xl px-4 py-3"><div className="flex gap-1"><div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} /><div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} /><div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} /></div></div>
+                  <div className="bg-muted rounded-xl px-4 py-3"><div className="flex gap-1"><div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} /><div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} /><div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} /></div></div>
                 </div>
               )}
             </div>
           </ScrollArea>
 
           {/* Input */}
-          <div className="p-3 border-t border-slate-200">
+          <div className="p-3 border-t border-border">
             <form onSubmit={e => { e.preventDefault(); handleSend() }} className="flex gap-2">
               <Input value={input} onChange={e => setInput(e.target.value)} placeholder="Ask your AI advisor..." className="flex-1" disabled={sending} />
               <Button type="submit" size="icon" disabled={sending || !input.trim()} className="bg-emerald-600 hover:bg-emerald-700 shrink-0"><Send className="w-4 h-4" /></Button>
@@ -1665,11 +1864,11 @@ function OnboardingFlow() {
     // Step 0: Welcome
     <motion.div key="welcome" {...scaleIn} className="text-center max-w-lg mx-auto">
       <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mx-auto mb-6"><Brain className="w-10 h-10 text-white" /></div>
-      <h1 className="text-3xl font-bold text-slate-800 mb-3">Welcome to {APP_CONFIG.name}</h1>
-      <p className="text-slate-500 mb-8">{APP_CONFIG.description}</p>
+      <h1 className="text-3xl font-bold text-foreground mb-3">Welcome to {APP_CONFIG.name}</h1>
+      <p className="text-muted-foreground mb-8">{APP_CONFIG.description}</p>
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[{ icon: ListTodo, label: "10-Step Plan", desc: "Guided business planning" }, { icon: Sparkles, label: "AI Advisor", desc: "Expert guidance 24/7" }, { icon: TrendingUp, label: "Track Progress", desc: "Milestones & financials" }].map((f, i) => (
-          <div key={i} className="p-3 rounded-lg bg-slate-50 border border-slate-100"><f.icon className="w-6 h-6 text-emerald-600 mx-auto mb-2" /><p className="font-medium text-sm">{f.label}</p><p className="text-[10px] text-slate-400">{f.desc}</p></div>
+          <div key={i} className="p-3 rounded-lg bg-muted border border-border"><f.icon className="w-6 h-6 text-emerald-600 mx-auto mb-2" /><p className="font-medium text-sm">{f.label}</p><p className="text-[10px] text-muted-foreground">{f.desc}</p></div>
         ))}
       </div>
       <Button onClick={() => setStep(1)} size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg w-full">Get Started <ChevronRight className="w-5 h-5 ml-1" /></Button>
@@ -1677,43 +1876,43 @@ function OnboardingFlow() {
 
     // Step 1: Personal Info
     <motion.div key="personal" {...scaleIn} className="max-w-md mx-auto">
-      <h2 className="text-2xl font-bold text-slate-800 mb-2">Tell us about yourself</h2>
-      <p className="text-slate-500 mb-6">We'll personalize your experience</p>
+      <h2 className="text-2xl font-bold text-foreground mb-2">Tell us about yourself</h2>
+      <p className="text-muted-foreground mb-6">We'll personalize your experience</p>
       <div className="space-y-4">
-        <div><label className="text-sm font-medium text-slate-700 mb-1 block">Your Name</label><Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Sarah Chen" /></div>
-        <div><label className="text-sm font-medium text-slate-700 mb-1 block">Company</label><Input value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. Startup Labs" /></div>
-        <div><label className="text-sm font-medium text-slate-700 mb-1 block">Your Role</label><Input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Founder & CEO" /></div>
+        <div><label className="text-sm font-medium text-foreground mb-1 block">Your Name</label><Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Sarah Chen" /></div>
+        <div><label className="text-sm font-medium text-foreground mb-1 block">Company</label><Input value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. Startup Labs" /></div>
+        <div><label className="text-sm font-medium text-foreground mb-1 block">Your Role</label><Input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Founder & CEO" /></div>
       </div>
       <div className="flex gap-3 mt-6"><Button variant="outline" onClick={() => setStep(0)}>Back</Button><Button onClick={() => setStep(2)} className="flex-1 bg-emerald-600 hover:bg-emerald-700">Continue</Button></div>
     </motion.div>,
 
     // Step 2: Business Info
     <motion.div key="business" {...scaleIn} className="max-w-md mx-auto">
-      <h2 className="text-2xl font-bold text-slate-800 mb-2">About your business</h2>
-      <p className="text-slate-500 mb-6">This helps us create a tailored plan</p>
+      <h2 className="text-2xl font-bold text-foreground mb-2">About your business</h2>
+      <p className="text-muted-foreground mb-6">This helps us create a tailored plan</p>
       <div className="space-y-4">
-        <div><label className="text-sm font-medium text-slate-700 mb-1 block">Business Name *</label><Input value={bizName} onChange={e => setBizName(e.target.value)} placeholder="e.g. TechFlow SaaS" /></div>
-        <div><label className="text-sm font-medium text-slate-700 mb-1 block">Description</label><Textarea value={bizDescription} onChange={e => setBizDescription(e.target.value)} placeholder="What does your business do?" rows={3} /></div>
+        <div><label className="text-sm font-medium text-foreground mb-1 block">Business Name *</label><Input value={bizName} onChange={e => setBizName(e.target.value)} placeholder="e.g. TechFlow SaaS" /></div>
+        <div><label className="text-sm font-medium text-foreground mb-1 block">Description</label><Textarea value={bizDescription} onChange={e => setBizDescription(e.target.value)} placeholder="What does your business do?" rows={3} /></div>
         <div className="grid grid-cols-2 gap-3">
-          <div><label className="text-sm font-medium text-slate-700 mb-1 block">Industry</label><Select value={bizIndustry} onValueChange={setBizIndustry}><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{INDUSTRIES.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select></div>
-          <div><label className="text-sm font-medium text-slate-700 mb-1 block">Stage</label><Select value={bizStage} onValueChange={setBizStage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STAGES).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent></Select></div>
+          <div><label className="text-sm font-medium text-foreground mb-1 block">Industry</label><Select value={bizIndustry} onValueChange={setBizIndustry}><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{INDUSTRIES.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select></div>
+          <div><label className="text-sm font-medium text-foreground mb-1 block">Stage</label><Select value={bizStage} onValueChange={setBizStage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STAGES).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent></Select></div>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div><label className="text-sm font-medium text-slate-700 mb-1 block">Target Market</label><Select value={bizTargetMarket} onValueChange={setBizTargetMarket}><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{TARGET_MARKETS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
-          <div><label className="text-sm font-medium text-slate-700 mb-1 block">Revenue Model</label><Select value={bizRevenueModel} onValueChange={setBizRevenueModel}><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{REVENUE_MODELS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select></div>
+          <div><label className="text-sm font-medium text-foreground mb-1 block">Target Market</label><Select value={bizTargetMarket} onValueChange={setBizTargetMarket}><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{TARGET_MARKETS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
+          <div><label className="text-sm font-medium text-foreground mb-1 block">Revenue Model</label><Select value={bizRevenueModel} onValueChange={setBizRevenueModel}><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger><SelectContent>{REVENUE_MODELS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select></div>
         </div>
-        <div><label className="text-sm font-medium text-slate-700 mb-1 block">Initial Capital ($)</label><Input type="number" value={bizCapital} onChange={e => setBizCapital(e.target.value)} placeholder="e.g. 100000" /></div>
+        <div><label className="text-sm font-medium text-foreground mb-1 block">Initial Capital ($)</label><Input type="number" value={bizCapital} onChange={e => setBizCapital(e.target.value)} placeholder="e.g. 100000" /></div>
       </div>
       <div className="flex gap-3 mt-6"><Button variant="outline" onClick={() => setStep(1)}>Back</Button><Button onClick={handleFinish} disabled={creating || !bizName} className="flex-1 bg-emerald-600 hover:bg-emerald-700">{creating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Creating...</> : <><Rocket className="w-4 h-4 mr-2" />Launch My Plan</>}</Button></div>
     </motion.div>,
   ]
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-6">
       <div className="w-full max-w-lg">
         {/* Progress dots */}
         <div className="flex justify-center gap-2 mb-8">
-          {[0, 1, 2].map(i => <div key={i} className={cn("w-2.5 h-2.5 rounded-full transition-colors", step >= i ? "bg-emerald-500" : "bg-slate-300")} />)}
+          {[0, 1, 2].map(i => <div key={i} className={cn("w-2.5 h-2.5 rounded-full transition-colors", step >= i ? "bg-emerald-500" : "bg-muted")} />)}
         </div>
         <AnimatePresence mode="wait">{steps[step]}</AnimatePresence>
       </div>
@@ -1724,10 +1923,12 @@ function OnboardingFlow() {
 // ─── EMPTY STATE ────────────────────────────────────────
 function EmptyState({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
   return (
-    <div className="text-center py-16 text-slate-400">
-      <Icon className="w-16 h-16 mx-auto mb-4" />
-      <h3 className="text-xl font-semibold mb-2">{title}</h3>
-      <p>{description}</p>
+    <div className="text-center py-16">
+      <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+        <Icon className="w-10 h-10 text-muted-foreground" />
+      </div>
+      <h3 className="text-lg font-semibold text-foreground mb-1">{title}</h3>
+      <p className="text-sm text-muted-foreground">{description}</p>
     </div>
   )
 }
