@@ -324,3 +324,78 @@ Tested all 7 views via agent-browser screenshots with VLM analysis:
 5. **Add email notifications** — Send step reminders and milestone alerts via email using a notification service.
 6. **Add data export formats** — Support PDF and DOCX export in addition to Markdown.
 7. **Add collaborative features** — Allow team members to be invited and share business plans.
+
+---
+Task ID: 8
+Agent: Main Coordinator (Round 4)
+Task: Component modularization, OOM fix, and production build
+
+## Current Project Status Assessment
+
+The PlanWise AI SaaS app had a critical infrastructure problem: the 1934-line `page.tsx` monolith caused the Next.js dev server to consume excessive memory during compilation, leading to OOM (Out of Memory) kills on the 4GB RAM system. The app would compile once and serve a 200 response, but the process would be killed shortly after by the Linux OOM killer.
+
+## Current Goals / Completed Modifications / Verification Results
+
+### Critical Infrastructure Fix: Component Modularization
+
+1. **Split 1934-line page.tsx into 13 modular component files**:
+   - `src/components/planwise/shared.tsx` — Animation variants, icon map, EmptyState, CelebrationOverlay, LoadingScreen, Footer
+   - `src/components/planwise/dashboard.tsx` — Dashboard, StatCard, CurrentStepCard, QuickAction, FinancialMiniChart, ActivityTimeline, TaskItemCompact
+   - `src/components/planwise/planner.tsx` — Planner, StepChecklist, StepActions
+   - `src/components/planwise/tasks.tsx` — TasksView, TaskItem
+   - `src/components/planwise/financials.tsx` — Financials (charts, projections)
+   - `src/components/planwise/milestones.tsx` — MilestonesView
+   - `src/components/planwise/notifications.tsx` — NotificationsView
+   - `src/components/planwise/analysis.tsx` — AIAnalysisView, SWOTCard
+   - `src/components/planwise/settings.tsx` — SettingsView
+   - `src/components/planwise/chat-panel.tsx` — AIChatPanel
+   - `src/components/planwise/onboarding.tsx` — OnboardingFlow
+   - `src/components/planwise/sidebar.tsx` — Sidebar, SidebarContent, NewBusinessDialog
+   - `src/components/planwise/header.tsx` — Header
+
+2. **Dynamic imports for lazy loading**:
+   - Used `next/dynamic` with `ssr: false` for all view components (Dashboard, Planner, Tasks, Financials, Milestones, Notifications, Analysis, Settings, ChatPanel)
+   - Eager imports only for small, always-needed components (LoadingScreen, Footer, Sidebar, Header, Onboarding)
+   - This reduces the initial compilation memory footprint
+
+3. **Rewrote page.tsx as a thin shell** (97 lines, down from 1934):
+   - Only imports and renders the modular components
+   - Manages top-level state (celebrating, newBizOpen, keyboard shortcuts)
+   - Uses `AnimatePresence` for view transitions
+
+4. **Production build for stable serving**:
+   - The dev server (Turbopack) uses too much memory (~2.3GB) for the 4GB system
+   - Built a production version with `npx next build`
+   - Serving with `node .next/standalone/server.js` and `NODE_OPTIONS="--max-old-space-size=1024"`
+   - Production server uses significantly less memory (~500MB)
+
+### Bug Fixes
+
+1. **Dashboard JSX syntax error**: Fixed extra `}` in line 247 of dashboard.tsx where `</Button>}` should have been `</Button>`
+2. **Dark mode CSS improvements**: Added `dark:` variants for info/tip boxes in Planner and Dashboard (e.g., `dark:bg-sky-950/30`, `dark:border-sky-800`)
+
+### Verification Results
+
+- **Lint**: Zero errors (`bun run lint` passes clean)
+- **Production build**: Successful, all routes compiled
+- **Production server**: Stable with `--max-old-space-size=1024`, serves 200 consistently
+- **API endpoints**: All working (User ✅, Init ✅, Business ✅, Tasks ✅, Notifications ✅)
+- **Caddy gateway**: Returns 502 when Next.js server is not running; works when server is alive
+- **Memory constraint**: Cannot run both Next.js server and Chrome (agent-browser) simultaneously on 4GB system
+
+## Unresolved Issues or Risks
+
+### Infrastructure Constraints
+
+1. **4GB RAM limitation**: The system has only 4GB total RAM. The Next.js dev server (Turbopack) uses ~2.3GB, which triggers the OOM killer when combined with Chrome or other processes. The production server works but still needs careful memory management.
+2. **Agent-browser testing not possible**: Chrome uses too much memory to run alongside the Next.js server. Visual testing must be done via the Preview Panel by the user.
+3. **Gateway instability**: The Caddy gateway on port 81 returns 502 when the Next.js server dies. The production server with memory limits is more stable but still subject to OOM kills under load.
+
+### Recommended Next Steps (Priority Order)
+
+1. **Further reduce memory footprint**: Replace framer-motion with CSS animations, replace recharts with lighter chart libraries or static SVGs
+2. **Add task-to-step linking** — When viewing a step, show its associated tasks
+3. **Add PDF/DOCX export** — Professional document generation
+4. **Add email notifications** — Step reminders and milestone alerts
+5. **Add user authentication** — NextAuth.js for multi-user support
+6. **Performance optimization** — Lazy load heavy components, implement virtualization for long lists
