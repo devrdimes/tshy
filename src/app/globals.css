@@ -143,6 +143,12 @@
   background: oklch(0.45 0 0);
 }
 
+/* Dark mode scrollbar for Firefox */
+.dark * {
+  scrollbar-color: oklch(0.35 0 0) transparent;
+  scrollbar-width: thin;
+}
+
 /* ─── Glassmorphism Effect ─────────────────────────────── */
 .glass {
   background: rgba(255, 255, 255, 0.7);
@@ -155,12 +161,43 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* ─── Glass Card (Enhanced Glassmorphism) ──────────────── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+}
+.dark .glass-card {
+  background: rgba(24, 24, 27, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
 /* ─── Gradient Text ────────────────────────────────────── */
 .gradient-text {
   background: linear-gradient(135deg, #10b981 0%, #14b8a6 50%, #06b6d4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* ─── Animated Gradient Text ───────────────────────────── */
+.text-gradient {
+  background: linear-gradient(
+    135deg,
+    #10b981 0%,
+    #14b8a6 25%,
+    #06b6d4 50%,
+    #10b981 75%,
+    #14b8a6 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 4s ease-in-out infinite;
 }
 
 /* ─── Shimmer Animation ────────────────────────────────── */
@@ -185,6 +222,20 @@
 /* ─── Smooth Transitions ───────────────────────────────── */
 .transition-smooth {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Theme Switch Transition ──────────────────────────── */
+html {
+  transition: color-scheme 0.3s ease;
+}
+body,
+.bg-background,
+.bg-card,
+.bg-muted,
+.text-foreground,
+.text-muted-foreground,
+.border-border {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 /* ─── Card Hover Lift ──────────────────────────────────── */
@@ -231,4 +282,35 @@
 }
 .animate-confetti {
   animation: confetti 2s ease-out forwards;
+}
+
+/* ─── Float Animation ──────────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ─── Pulse Ring Animation ─────────────────────────────── */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+/* ─── Gradient Shift Animation ─────────────────────────── */
+@keyframes gradient-shift {
+  0% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+  100% { background-position: 0% center; }
 }

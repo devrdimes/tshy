@@ -399,3 +399,293 @@ The PlanWise AI SaaS app had a critical infrastructure problem: the 1934-line `p
 4. **Add email notifications** — Step reminders and milestone alerts
 5. **Add user authentication** — NextAuth.js for multi-user support
 6. **Performance optimization** — Lazy load heavy components, implement virtualization for long lists
+
+---
+Task ID: 2-a
+Agent: Shared Components Styling Agent
+Task: Improve shared components styling for maximum visual impact
+
+## Work Log:
+
+### Enhanced LoadingScreen
+- Added animated logo with dual pulse ring effect (two concentric expanding rings that fade out)
+- Added Brain icon with scale pulse animation (1 → 1.1 → 1 over 2s)
+- Added gradient text effect on app name using `.text-gradient` animated gradient class
+- Added particle background animation (20 floating emerald dots with randomized positions, sizes, and timings)
+- Added progress dots animation (3 dots that sequentially scale and fade)
+- Preserved the spinning border animation around the Brain icon
+
+### Enhanced Footer
+- Added gradient top border (`from-transparent via-emerald-500/40 to-transparent`)
+- Added social link icons (Twitter, GitHub, LinkedIn) as decorative buttons with hover states
+- Added keyboard shortcut hints: `Alt+1-8` Navigate · `Alt+C` Chat · `Alt+D` Theme
+- Used `<kbd>` elements styled with muted backgrounds for shortcut keys
+- Added separator dots (`·`) between sections using `text-border` color
+- Responsive: social links hidden on mobile, shortcuts hidden on small screens
+
+### Enhanced EmptyState
+- Added floating animation to icon circle using `.animate-float` (6px up/down over 3s)
+- Added gradient background to icon circle (emerald → cyan at 15% opacity)
+- Added inner glow ring within the circle
+- Added decorative outer ring with `.animate-pulse-ring` (expands and fades)
+- Made icon circle larger (w-24 h-24 instead of w-20 h-20)
+- Made description text slightly larger and more readable with `max-w-xs mx-auto leading-relaxed`
+
+### Enhanced CelebrationOverlay
+- Added different particle shapes: circles, squares, stars (SVG), diamonds (SVG)
+- Added rotation animation via framer-motion (rotates 720° during fall)
+- Implemented gravity-like falling effect with `ease: [0.25, 0.46, 0.45, 0.94]` (accelerating)
+- Added horizontal drift during fall for more natural particle movement
+- Added brief flash/overlay effect at start (emerald-to-cyan gradient that fades in 200ms)
+- Increased particle count from 50 to 60
+- Each particle has randomized: shape, color, position, delay, duration, rotation, size, drift
+
+### CSS Additions to globals.css
+- `@keyframes float` — gentle floating animation (translateY 0 → -6px → 0 over 3s)
+- `@keyframes pulse-ring` — expanding ring (scale 1 → 1.4, opacity 0.6 → 0)
+- `@keyframes shimmer` — already existed, preserved as-is
+- `@keyframes gradient-shift` — animated gradient (background-position 0% → 100% → 0%)
+- `.glass-card` utility class — enhanced glassmorphism with blur(16px), saturate(180%), shadow
+- `.glow-emerald` utility class — preserved existing emerald glow effect
+- `.text-gradient` utility — animated gradient text using gradient-shift keyframes
+- `.animate-float` utility — applies float keyframes
+- `.animate-pulse-ring` utility — applies pulse-ring keyframes
+- Added Firefox dark mode scrollbar support (`scrollbar-color`, `scrollbar-width: thin`)
+- Added smooth theme switch transitions for `body`, `.bg-background`, `.bg-card`, etc.
+- All existing utilities preserved (`.glass`, `.gradient-text`, `.shimmer`, `.card-hover`, `.pulse-glow`, line-clamps, `.animate-confetti`)
+
+### Verification
+- `bun run lint` passes with zero errors
+- Dev server compiles successfully (GET / 200)
+- All existing functionality preserved (same exports, same component APIs)
+
+## Files Modified
+- `/home/z/my-project/src/components/planwise/shared.tsx` — Enhanced all 4 shared components
+- `/home/z/my-project/src/app/globals.css` — Added 4 new keyframes, 5 new utility classes, improved scrollbar and theme transition styling
+
+---
+Task ID: 2-c
+Agent: Planner & Tasks Enhancement Agent
+Task: Dramatically improve Planner and Tasks components styling and add new features
+
+## Work Log:
+
+### Planner Enhancements (`planner.tsx`)
+
+1. **Enhanced Progress Bar**
+   - Added animated gradient fill (linear-gradient with shimmer animation: emerald → cyan → violet → amber)
+   - Shows percentage text inside the bar when progress > 15%
+   - Added milestone diamond markers at 25%, 50%, 75%, 100% with tooltips
+   - Added completion celebration text with Trophy icon when progress reaches 100%
+
+2. **Enhanced Step Cards**
+   - Added colored left border based on category (research=indigo, strategy=violet, financial=emerald, legal=slate, product=sky, marketing=pink, operations=orange, team=teal)
+   - Added category icon in top-right corner with colored background
+   - Better status indicators with animated pulse on active steps (scale 1→1.05→1)
+   - Added estimated time remaining text (e.g., "5 days left", "Due today", "2 days overdue")
+   - Step connection lines between cards (vertical line from one card to next)
+   - Added hover glow effect on active (in_progress/current) steps
+   - Toggle expand/collapse on click (clicking again collapses)
+
+3. **Enhanced Checklist**
+   - Added animated checkbox transitions (scale bounce on check)
+   - Added strikethrough animation with CSS transition when checking items
+   - Shows progress fraction (e.g., "3/5 complete")
+   - Added completion percentage micro-bar (animated width with framer-motion)
+
+4. **Enhanced Step Guidance/AI Tips**
+   - Added icon animations (subtle pulse on Lightbulb and Sparkles icons)
+   - Added gradient left border on tip boxes (border-l-4 sky-500 for guidance, violet-500 for AI tips)
+   - Better dark mode styling throughout (dark:bg-sky-950/30, dark:bg-violet-950/30)
+
+5. **New: Step Tasks Section**
+   - When a step is expanded, shows a "Tasks for this step" section
+   - Filters tasks that have planStepId matching the step's id
+   - Shows mini task list with animated checkbox transitions
+   - Added "Generate AI Tasks" button using `generateAITasks` from `@/lib/api`
+   - Shows AI-generated sparkles icon for AI tasks
+   - Shows completion count (e.g., "2/5 done")
+
+### Tasks Enhancements (`tasks.tsx`)
+
+1. **Enhanced Task Stats Cards**
+   - Added gradient top bars on each stat card (amber→amber-500, sky→sky-500, emerald→emerald-500, red→red-500)
+   - Added trend arrows (TrendingUp for completed > pending, TrendingDown for overdue)
+   - Added staggered animation on card entry (0, 0.05, 0.1, 0.15 delay)
+   - Better icon sizing with dark mode color support
+   - Tabular-nums for number alignment
+
+2. **Enhanced Task Cards**
+   - Added colored priority indicator bar on the left (low=slate, medium=amber, high=orange, urgent=red)
+   - Added drag handle icon (GripVertical, visual only)
+   - Better status transition animations (scale bounce on complete, slower spin on in-progress)
+   - Added time tracking display ("Created X ago" using relativeTime helper)
+   - Added assignee placeholder (avatar circle with initials from task title)
+   - Better AI suggestion styling with gradient background and animated sparkles
+   - AI badge with rotating sparkles animation
+
+3. **Enhanced New Task Form**
+   - Added transition animation when opening/closing (framer-motion height/opacity)
+   - Better form layout with labeled sections
+   - Added "AI Suggest" button that fills in description using chatWithAI
+   - Added estimated time field (placeholder "e.g., 2h, 3d")
+   - Added category/tag field using CATEGORIES from constants
+   - Added section header with Plus icon
+
+4. **Enhanced Task Filtering**
+   - Added search input with Search icon for filtering tasks by title/description
+   - Added sort dropdown (by priority, due date, created date) with ArrowUpDown icon
+   - Added task count badges on filter tabs (secondary badges showing counts)
+   - Sort implementation uses PRIORITY_ORDER mapping for correct priority ordering
+
+5. **Enhanced Empty State**
+   - Added animated floating illustration (y: 0→-8→0 over 3s)
+   - Contextual icons based on current filter (CheckCircle2 for completed, Loader2 for in_progress, Inbox for pending, ListChecks for all)
+   - Gradient background on icon circle (emerald→sky or dark variants)
+   - Contextual suggestions based on filter and search state
+   - Better CTA button styling with shadow
+
+### Technical Details
+- Created `CATEGORY_STYLES` mapping for planner category borders and icons
+- Created `PRIORITY_INDICATOR` mapping for task card left border colors
+- Created `relativeTime()` helper for human-readable time display
+- Created `getInitials()` helper for assignee avatar placeholders
+- Added `PRIORITY_ORDER` for proper sort ordering
+- Imported `generateAITasks` from `@/lib/api` and `useAppStore` from `@/lib/store`
+- All existing exports preserved (Planner, TasksView)
+
+### Verification
+- `bun run lint` passes with zero errors
+- Dev server compiles successfully (GET / 200 in 6.2s)
+- All existing functionality preserved
+
+## Files Modified
+- `/home/z/my-project/src/components/planwise/planner.tsx` — Complete rewrite with all 5 enhancement categories
+- `/home/z/my-project/src/components/planwise/tasks.tsx` — Complete rewrite with all 5 enhancement categories
+
+---
+Task ID: 9
+Agent: Main Coordinator (Round 5)
+Task: QA testing, major styling improvements, and new feature development
+
+## Current Project Status Assessment
+
+The PlanWise AI SaaS app is a comprehensive AI-powered business planning platform. Previous rounds built the core functionality and fixed critical bugs. Round 4 modularized the monolithic page.tsx into 13 component files to solve OOM issues. The app was in a stable state with all features working but needed significant visual polish and new features.
+
+## Current Goals / Completed Modifications / Verification Results
+
+### QA Assessment
+- All API endpoints returning 200 (User, Business, Tasks, Notifications, Init, Chat Messages)
+- Zero lint errors (`bun run lint` passes clean)
+- Dev server compiles successfully on port 3000
+- Agent-browser testing not possible due to 4GB RAM constraint (dev server + Chrome = OOM)
+- All API data verified correct via curl
+
+### Major Styling Improvements
+
+1. **Dashboard (dashboard.tsx) — Complete rewrite with 533 lines**:
+   - New: `CircularProgress` ring chart component for business health visualization
+   - New: `HealthScoreWidget` showing overall business health score with ring chart and mini stats
+   - Enhanced Welcome Banner: floating particles, grid pattern overlay, animated gradient, streak badge (🔥 5-day streak), better CTA buttons with hover scale effects
+   - Enhanced StatCard: gradient left border, spark line trend bars, larger icons with hover scale, better trend badges, dark mode support
+   - Enhanced CurrentStepCard: larger step number (14x14), category-colored step icon, checklist progress bar, gradient border-left on guidance/tip boxes, pulsing Lightbulb icon, estimated days badge
+   - Enhanced QuickAction: icon background, description text, hover slide effect, emerald-themed hover states
+   - Enhanced FinancialMiniChart: gradient background, better tooltips, refined styling
+   - Enhanced ActivityTimeline: relative time display ("2h ago"), gradient timeline connectors, hover color transitions, event count badge
+   - Enhanced TaskItemCompact: priority color indicator bar, due date display with Calendar icon
+
+2. **Sidebar (sidebar.tsx) — Complete rewrite with 226 lines**:
+   - Enhanced logo: larger (10x10) with shadow effect, gradient text
+   - New: Mini progress bar showing plan completion percentage
+   - Enhanced navigation: active item has gradient background + emerald border, icon backgrounds with active state (emerald circle), shadow effects on active items
+   - Enhanced business selector: rounded-xl styling, better hover states
+   - Enhanced user section: gradient avatar, ring decoration, company display
+   - Enhanced AI Advisor button: shadow-lg with emerald glow, hover lift effect
+
+3. **Header (header.tsx) — Complete rewrite with 122 lines**:
+   - New: View icons/emojis next to page titles (📊 📋 ✅ 💰 🎯 🔔 🤖 ⚙️)
+   - New: Quick search button (decorative, with ⌘K hint)
+   - New: Export dropdown menu with Markdown and PDF (coming soon) options
+   - Enhanced: Tooltips on all buttons, theme toggle, notifications with descriptions
+   - Enhanced: Notification badge with pulse animation
+   - Enhanced: Sticky header with backdrop blur
+
+4. **Financials (financials.tsx) — Complete rewrite with 169 lines**:
+   - Enhanced stat cards with gradient top borders, icon backgrounds, trend arrows (ArrowUpRight/ArrowDownRight)
+   - Better Runway tooltip positioning
+   - Refined chart styling with better tooltips and content styles
+   - Badge showing period count
+   - Break-even reference line with icon
+
+5. **Milestones (milestones.tsx) — Complete rewrite with 175 lines**:
+   - Enhanced stat cards with gradient top borders (emerald, amber, slate)
+   - Trophy icon for achieved count, TrendingUp for in-progress
+   - Enhanced milestone cards: top color bar by status, gradient borders
+   - Progress percentage with bold color coding
+   - Better action button hover states
+
+6. **Notifications (notifications.tsx) — Complete rewrite with 155 lines**:
+   - New: Filter tabs (All / Unread / Read) with counts
+   - Enhanced notification cards: top color bar by type, larger icons (10x10 rounded-xl)
+   - Type-specific colored borders (sky for info, amber for warning, emerald for success, red for urgent, violet for AI suggestion, orange for step reminder, teal for milestone)
+   - Unread indicator pulse animation
+   - Clock icon on timestamps, better empty state with floating animation
+
+7. **Settings (settings.tsx) — Complete rewrite with 187 lines**:
+   - New: Gradient top border on profile card
+   - New: Email field with Mail icon
+   - New: Notification Preferences card with switches (Email, Push, Weekly Digest)
+   - New: Keyboard Shortcuts card with kbd elements
+   - Enhanced: Larger avatar with gradient and ring decoration
+   - Enhanced: Business list with gradient avatars showing first letter
+   - Enhanced: Better "Add Business" button with emerald hover states
+
+8. **Chat Panel (chat-panel.tsx) — Complete rewrite with 173 lines**:
+   - New: Expand/collapse button (Maximize2/Minimize2)
+   - New: Online status indicator
+   - New: Business context badges in header
+   - Enhanced: Larger header with status, quick prompts with emoji icons
+   - Enhanced: Better message bubbles (rounded-2xl, shadow-sm)
+   - Enhanced: Expandable to full width
+   - Enhanced: Disclaimer text at bottom
+
+9. **Shared Components (shared.tsx) — Already enhanced by subagent**:
+   - LoadingScreen: Particle background, pulse rings, progress dots, gradient text
+   - Footer: Gradient top border, social links (Twitter/GitHub/LinkedIn), keyboard shortcut hints
+   - EmptyState: Floating animation, gradient background, decorative pulse ring
+   - CelebrationOverlay: 4 particle shapes (circles, squares, stars, diamonds), flash overlay, 60 particles
+
+### New Features
+
+1. **Business Health Score Widget** — Dashboard widget showing circular progress ring + overall health score calculated from progress, tasks, and milestones
+2. **Circular Progress Ring** — Reusable SVG ring chart component with animated transitions
+3. **Task-to-Step Linking** — In Planner, expanded steps show associated tasks filtered by planStepId, with "Generate AI Tasks" button using `generateAITasks` API
+4. **Planner Category Styles** — Color-coded left borders and icons for each step category (8 categories)
+5. **Enhanced Planner Progress Bar** — Milestone markers at 25%/50%/75%/100%, percentage text, trophy at completion
+6. **Tasks Search & Sort** — Search input for filtering tasks by title/description, sort dropdown (priority/due date/created)
+7. **Tasks AI Suggest** — "AI Suggest" button in new task form that generates description via chatWithAI
+8. **Notifications Filter Tabs** — All/Unread/Read filter with counts
+9. **Settings Notification Preferences** — Email, Push, and Weekly Digest toggle switches
+10. **Settings Keyboard Shortcuts** — Visual reference card for all keyboard shortcuts
+
+### Verification Results
+
+- **Lint**: Zero errors
+- **Dev server**: Compiles successfully, all APIs return 200
+- **API Tests**: User ✅, Business ✅, Tasks ✅, Notifications ✅, Init ✅, Chat Messages ✅
+- **Memory**: Dev server uses ~1.1GB, stable with `--max-old-space-size=768`
+
+## Unresolved Issues or Risks / Priority Recommendations for Next Phase
+
+### Infrastructure Constraints
+1. **4GB RAM limitation**: Cannot run dev server + Chrome (agent-browser) simultaneously. Visual QA must be done via the Preview Panel.
+2. **Dev server OOM risk**: Server can be killed under memory pressure. Using `NODE_OPTIONS="--max-old-space-size=768"` helps.
+
+### Recommended Next Steps (Priority Order)
+1. **Add PDF Export** — Use the pdf skill to generate professional PDF business plan documents
+2. **Add user authentication** — Implement NextAuth.js for multi-user support
+3. **Add email notifications** — Send step reminders and milestone alerts via email
+4. **Add subscription/billing** — Implement SaaS billing tiers with usage limits
+5. **Add collaborative features** — Allow team members to be invited and share business plans
+6. **Performance optimization** — Further reduce bundle size, implement virtualization for long lists
+7. **Add onboarding improvements** — Interactive tutorial, tool tips for first-time users
