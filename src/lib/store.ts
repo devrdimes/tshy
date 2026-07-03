@@ -139,7 +139,7 @@ interface AppState {
   currentBusiness: Business | null
   setBusinesses: (businesses: Business[]) => void
   setCurrentBusiness: (business: Business | null) => Promise<void>
-
+  refreshBusiness: () => Promise<void>
   // Plan Steps
   currentStep: PlanStep | null
   setCurrentStep: (step: PlanStep | null) => void
@@ -147,6 +147,7 @@ interface AppState {
   // Tasks
   tasks: Task[]
   setTasks: (tasks: Task[]) => void
+  refreshTasks: () => Promise<void>
 
   // Notifications
   notifications: Notification[]
@@ -169,6 +170,7 @@ interface AppState {
     | 'financials'
     | 'milestones'
     | 'notifications'
+    | 'analysis'
     | 'settings'
     | 'onboarding'
   setActiveView: (view: AppState['activeView']) => void
@@ -241,6 +243,37 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Tasks
   tasks: [],
   setTasks: (tasks) => set({ tasks }),
+  refreshTasks: async () => {
+    try {
+      const { fetchTasks } = await import('./api')
+      const bizId = get().currentBusiness?.id
+      const taskData = await fetchTasks(bizId)
+      const taskList = Array.isArray(taskData) ? taskData : taskData?.tasks ?? []
+      set({ tasks: taskList })
+    } catch (e) {
+      console.error('Failed to refresh tasks:', e)
+    }
+  },
+  refreshBusiness: async () => {
+    const biz = get().currentBusiness
+    if (!biz?.id) return
+    try {
+      const fullBiz = await fetchBusiness(biz.id)
+      set({ currentBusiness: fullBiz })
+      if (fullBiz.planSteps?.length > 0) {
+        const activeStep =
+          fullBiz.planSteps.find(
+            (s) => s.status === 'current' || s.status === 'in_progress',
+          ) ?? null
+        set({ currentStep: activeStep })
+      }
+      // Also refresh businesses list
+      const businesses = await fetchBusinesses()
+      set({ businesses })
+    } catch (e) {
+      console.error('Failed to refresh business:', e)
+    }
+  },
 
   // Notifications
   notifications: [],

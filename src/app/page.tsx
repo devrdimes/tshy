@@ -4,10 +4,10 @@ import { useEffect, useState, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAppStore, type Business, type PlanStep, type Task, type Notification, type Milestone, type Financial, type ChatMessage, type User } from "@/lib/store"
 import { STAGES, CATEGORIES, PRIORITIES, NOTIFICATION_TYPES, TASK_STATUSES, STEP_STATUSES, MILESTONE_STATUSES, MILESTONE_CATEGORIES, INDUSTRIES, REVENUE_MODELS, TARGET_MARKETS, APP_CONFIG } from "@/lib/constants"
-import { fetchBusiness, updateBusiness, updatePlanStep, createTask, updateTask, deleteTask, chatWithAI, generateAITasks, getBusinessAnalysis, markNotificationRead, markAllNotificationsRead, dismissNotification, generateNotifications, generateProjections, createMilestone, updateMilestone, updateUser } from "@/lib/api"
+import { fetchBusiness, updateBusiness, updatePlanStep, createTask, updateTask, deleteTask, chatWithAI, generateAITasks, getBusinessAnalysis, markNotificationRead, markAllNotificationsRead, dismissNotification, generateNotifications, generateProjections, createMilestone, updateMilestone, updateUser, exportBusinessPlan, getExportUrl } from "@/lib/api"
 import ReactMarkdown from "react-markdown"
 import {
-  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, Settings, Bot, ChevronRight, ChevronLeft, Plus, Sparkles, CheckCircle2, Circle, Lock, Clock, AlertTriangle, TrendingUp, Users, Target, Rocket, Building2, Calendar, ArrowUpRight, ArrowDownRight, Search, MessageSquare, Send, X, Eye, Trash2, ChevronDown, Play, Pause, SkipForward, BarChart3, PieChart, Lightbulb, BookOpen, ExternalLink, Star, Zap, Heart, Shield, Award, Brain, Loader2, Menu, CheckCheck, MoreVertical, Info
+  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, Settings, Bot, ChevronRight, ChevronLeft, Plus, Sparkles, CheckCircle2, Circle, Lock, Clock, AlertTriangle, TrendingUp, Users, Target, Rocket, Building2, Calendar, ArrowUpRight, ArrowDownRight, Search, MessageSquare, Send, X, Eye, Trash2, ChevronDown, Play, Pause, SkipForward, BarChart3, PieChart, Lightbulb, BookOpen, ExternalLink, Star, Zap, Heart, Shield, Award, Brain, Loader2, Menu, CheckCheck, MoreVertical, Info, Download, Activity, FileText, Gauge, TrendingDown, AlertOctagon, ThumbsUp
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, Area, AreaChart, ReferenceLine } from "recharts"
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, Area, AreaChart, ReferenceLine, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, RadialBarChart, RadialBar } from "recharts"
 import { cn } from "@/lib/utils"
 
 // ─── ICON MAP ──────────────────────────────────────────────
@@ -70,6 +70,7 @@ export default function PlanWiseApp() {
                   {activeView === "financials" && <Financials />}
                   {activeView === "milestones" && <MilestonesView />}
                   {activeView === "notifications" && <NotificationsView />}
+                  {activeView === "analysis" && <AIAnalysisView />}
                   {activeView === "settings" && <SettingsView />}
                 </motion.div>
               </AnimatePresence>
@@ -111,6 +112,7 @@ function Sidebar() {
     { id: "tasks", label: "Tasks", icon: CheckCircle2 },
     { id: "financials", label: "Financial Projections", icon: DollarSign },
     { id: "milestones", label: "Milestones", icon: Flag },
+    { id: "analysis", label: "AI Analysis", icon: Gauge },
     { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount },
     { id: "settings", label: "Settings", icon: Settings },
   ]
@@ -235,7 +237,7 @@ function SidebarContent({ navItems, bizOpen, setBizOpen }: { navItems: { id: str
 // ─── HEADER ──────────────────────────────────────────────
 function Header() {
   const { activeView, currentBusiness, user, setChatOpen, unreadCount, setActiveView } = useAppStore()
-  const viewTitles: Record<string, string> = { dashboard: "Dashboard", planner: "Step-by-Step Plan", tasks: "Tasks", financials: "Financial Projections", milestones: "Milestones", notifications: "Notifications", settings: "Settings" }
+  const viewTitles: Record<string, string> = { dashboard: "Dashboard", planner: "Step-by-Step Plan", tasks: "Tasks", financials: "Financial Projections", milestones: "Milestones", notifications: "Notifications", analysis: "AI Business Analysis", settings: "Settings" }
 
   return (
     <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm px-4 md:px-6 py-3">
@@ -249,6 +251,11 @@ function Header() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {currentBusiness && (
+            <Button variant="outline" size="sm" className="hidden md:flex gap-2" onClick={() => window.open(getExportUrl(currentBusiness.id), '_blank')}>
+              <Download className="w-4 h-4" /> Export Plan
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="relative" onClick={() => setActiveView("notifications")}>
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center">{unreadCount}</span>}
@@ -289,21 +296,29 @@ function Dashboard() {
   return (
     <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-6">
       {/* Welcome Banner */}
-      <motion.div variants={fadeIn} className="relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-6 md:p-8 text-white">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full translate-y-1/2" />
+      <motion.div variants={fadeIn} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 p-6 md:p-8 text-white shadow-xl">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -translate-y-1/3 translate-x-1/3" />
+        <div className="absolute bottom-0 left-1/4 w-56 h-56 bg-white/5 rounded-full translate-y-1/2" />
+        <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-emerald-300/10 rounded-full blur-2xl" />
         <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-[10px] font-medium tracking-wide uppercase">{biz?.stage ? STAGES[biz.stage as keyof typeof STAGES]?.label : "Planning"}</div>
+            {biz && <div className="px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-[10px] font-medium">{completedSteps}/{totalSteps} steps done</div>}
+          </div>
           <h2 className="text-2xl md:text-3xl font-bold mb-2">Welcome back, {user?.name || "Entrepreneur"}! 👋</h2>
-          <p className="text-emerald-100 text-sm md:text-base max-w-2xl">
+          <p className="text-emerald-50/90 text-sm md:text-base max-w-2xl">
             {biz ? `Your "${biz.name}" business is ${progress}% complete. ${progress < 50 ? "Keep pushing — every step counts!" : progress < 100 ? "You're making great progress! Almost there." : "Congratulations! Your plan is complete!"}` : "Start building your business plan with AI-powered guidance."}
           </p>
           <div className="flex flex-wrap gap-3 mt-4">
-            {biz && <Button size="sm" variant="secondary" onClick={() => setActiveView("planner")} className="bg-white/20 hover:bg-white/30 text-white border-white/30">
+            {biz && <Button size="sm" variant="secondary" onClick={() => setActiveView("planner")} className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm">
               <ListTodo className="w-4 h-4 mr-2" /> Continue Planning
             </Button>}
-            <Button size="sm" variant="secondary" onClick={() => useAppStore.getState().setChatOpen(true)} className="bg-white/20 hover:bg-white/30 text-white border-white/30">
+            <Button size="sm" variant="secondary" onClick={() => useAppStore.getState().setChatOpen(true)} className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm">
               <Sparkles className="w-4 h-4 mr-2" /> Ask AI Advisor
             </Button>
+            {biz && <Button size="sm" variant="secondary" onClick={() => setActiveView("analysis")} className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm">
+              <Gauge className="w-4 h-4 mr-2" /> Run AI Analysis
+            </Button>}
           </div>
         </div>
       </motion.div>
@@ -415,25 +430,36 @@ function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Activity Timeline */}
+      <ActivityTimeline />
     </motion.div>
   )
 }
 
 function StatCard({ icon: Icon, label, value, trend, color, delay, subtitle }: { icon: React.ElementType; label: string; value: string; trend: "up" | "down" | "neutral"; color: string; delay: number; subtitle?: string }) {
+  const colorClasses: Record<string, { bg: string; text: string; gradient: string }> = {
+    emerald: { bg: "bg-emerald-50", text: "text-emerald-600", gradient: "from-emerald-500 to-teal-600" },
+    amber: { bg: "bg-amber-50", text: "text-amber-600", gradient: "from-amber-500 to-orange-600" },
+    teal: { bg: "bg-teal-50", text: "text-teal-600", gradient: "from-teal-500 to-cyan-600" },
+    violet: { bg: "bg-violet-50", text: "text-violet-600", gradient: "from-violet-500 to-purple-600" },
+  }
+  const c = colorClasses[color] || colorClasses.emerald
   return (
     <motion.div variants={fadeIn} transition={{ delay }}>
-      <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
+      <Card className="border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 overflow-hidden group">
+        <CardContent className="p-4 relative">
+          <div className={cn("absolute top-0 left-0 w-1 h-full bg-gradient-to-b opacity-80", c.gradient)} />
           <div className="flex items-center justify-between mb-2">
-            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", `bg-${color}-100`)}>
-              <Icon className={cn("w-5 h-5", `text-${color}-600`)} />
+            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110", c.bg)}>
+              <Icon className={cn("w-5 h-5", c.text)} />
             </div>
-            {trend === "up" && <ArrowUpRight className="w-4 h-4 text-emerald-500" />}
-            {trend === "down" && <ArrowDownRight className="w-4 h-4 text-red-500" />}
+            {trend === "up" && <div className="flex items-center gap-0.5 text-emerald-500"><ArrowUpRight className="w-3.5 h-3.5" /><span className="text-[10px] font-medium">up</span></div>}
+            {trend === "down" && <div className="flex items-center gap-0.5 text-red-500"><ArrowDownRight className="w-3.5 h-3.5" /><span className="text-[10px] font-medium">alert</span></div>}
           </div>
-          <p className="text-2xl font-bold text-slate-800">{value}</p>
+          <p className="text-2xl font-bold text-slate-800 tabular-nums">{value}</p>
           <p className="text-xs text-slate-500">{label}</p>
-          {subtitle && <p className="text-xs text-red-500 mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-red-500 mt-0.5 font-medium">{subtitle}</p>}
         </CardContent>
       </Card>
     </motion.div>
@@ -441,7 +467,7 @@ function StatCard({ icon: Icon, label, value, trend, color, delay, subtitle }: {
 }
 
 function CurrentStepCard({ step, businessId }: { step: PlanStep | undefined; businessId: string }) {
-  const { setCurrentBusiness, currentBusiness } = useAppStore()
+  const { refreshBusiness } = useAppStore()
   const [updating, setUpdating] = useState(false)
 
   if (!step) return <div className="text-center py-8 text-slate-400"><CheckCircle2 className="w-10 h-10 mx-auto mb-2" /><p>All steps completed or no active step!</p></div>
@@ -454,8 +480,7 @@ function CurrentStepCard({ step, businessId }: { step: PlanStep | undefined; bus
     setUpdating(true)
     try {
       await updatePlanStep(businessId, step.id, { status: "in_progress" })
-      const updatedBiz = await fetchBusiness(businessId)
-      setCurrentBusiness(updatedBiz)
+      await refreshBusiness()
     } catch (e) { console.error(e) }
     setUpdating(false)
   }
@@ -464,8 +489,7 @@ function CurrentStepCard({ step, businessId }: { step: PlanStep | undefined; bus
     setUpdating(true)
     try {
       await updatePlanStep(businessId, step.id, { status: "completed" })
-      const updatedBiz = await fetchBusiness(businessId)
-      setCurrentBusiness(updatedBiz)
+      await refreshBusiness()
     } catch (e) { console.error(e) }
     setUpdating(false)
   }
@@ -641,7 +665,7 @@ function Planner() {
 }
 
 function StepChecklist({ step, businessId }: { step: PlanStep; businessId: string }) {
-  const { setCurrentBusiness } = useAppStore()
+  const { refreshBusiness } = useAppStore()
   const items = JSON.parse(step.checklist || "[]") as string[]
 
   const toggleItem = async (idx: number) => {
@@ -650,8 +674,7 @@ function StepChecklist({ step, businessId }: { step: PlanStep; businessId: strin
     newItems[idx] = item.startsWith("✅") ? item.replace("✅", "⬜") : item.startsWith("⬜") ? item.replace("⬜", "✅") : "✅ " + item
     try {
       await updatePlanStep(businessId, step.id, { checklist: newItems })
-      const updatedBiz = await fetchBusiness(businessId)
-      setCurrentBusiness(updatedBiz)
+      await refreshBusiness()
     } catch (e) { console.error(e) }
   }
 
@@ -671,15 +694,14 @@ function StepChecklist({ step, businessId }: { step: PlanStep; businessId: strin
 }
 
 function StepActions({ step, businessId }: { step: PlanStep; businessId: string }) {
-  const { setCurrentBusiness } = useAppStore()
+  const { refreshBusiness } = useAppStore()
   const [loading, setLoading] = useState(false)
 
   const updateStatus = async (status: string) => {
     setLoading(true)
     try {
       await updatePlanStep(businessId, step.id, { status: status as PlanStep["status"] })
-      const updatedBiz = await fetchBusiness(businessId)
-      setCurrentBusiness(updatedBiz)
+      await refreshBusiness()
     } catch (e) { console.error(e) }
     setLoading(false)
   }
@@ -699,7 +721,7 @@ function StepActions({ step, businessId }: { step: PlanStep; businessId: string 
 
 // ─── TASKS VIEW ─────────────────────────────────────────
 function TasksView() {
-  const { tasks, setTasks, currentBusiness } = useAppStore()
+  const { tasks, setTasks, currentBusiness, refreshTasks } = useAppStore()
   const [filter, setFilter] = useState<"all" | "pending" | "in_progress" | "completed">("all")
   const [showNewTask, setShowNewTask] = useState(false)
   const [newTitle, setNewTitle] = useState("")
@@ -717,9 +739,7 @@ function TasksView() {
     if (!newTitle) return
     try {
       await createTask({ title: newTitle, description: newDesc, priority: newPriority, dueDate: newDueDate || null, businessId: currentBusiness?.id || null })
-      const taskData = await fetchTasks(currentBusiness?.id)
-      const taskList = Array.isArray(taskData) ? taskData : taskData?.tasks ?? []
-      setTasks(taskList)
+      await refreshTasks()
       setNewTitle(""); setNewDesc(""); setShowNewTask(false)
     } catch (e) { console.error(e) }
   }
@@ -785,16 +805,14 @@ function TasksView() {
 }
 
 function TaskItem({ task, compact = false }: { task: Task; compact?: boolean }) {
-  const { setTasks, currentBusiness } = useAppStore()
+  const { refreshTasks } = useAppStore()
   const [loading, setLoading] = useState(false)
 
   const handleStatusChange = async (status: Task["status"]) => {
     setLoading(true)
     try {
       await updateTask(task.id, { status })
-      const taskData = await fetchTasks(currentBusiness?.id)
-      const taskList = Array.isArray(taskData) ? taskData : taskData?.tasks ?? []
-      setTasks(taskList)
+      await refreshTasks()
     } catch (e) { console.error(e) }
     setLoading(false)
   }
@@ -803,9 +821,7 @@ function TaskItem({ task, compact = false }: { task: Task; compact?: boolean }) 
     setLoading(true)
     try {
       await deleteTask(task.id)
-      const taskData = await fetchTasks(currentBusiness?.id)
-      const taskList = Array.isArray(taskData) ? taskData : taskData?.tasks ?? []
-      setTasks(taskList)
+      await refreshTasks()
     } catch (e) { console.error(e) }
     setLoading(false)
   }
@@ -859,9 +875,9 @@ function TaskItem({ task, compact = false }: { task: Task; compact?: boolean }) 
 
 // ─── FINANCIALS VIEW ────────────────────────────────────
 function Financials() {
-  const { currentBusiness, setCurrentBusiness } = useAppStore()
+  const { refreshBusiness } = useAppStore()
   const [generating, setGenerating] = useState(false)
-  const biz = currentBusiness
+  const biz = useAppStore(s => s.currentBusiness)
 
   if (!biz) return <EmptyState icon={DollarSign} title="No Business Selected" description="Select a business to view financials" />
 
@@ -873,8 +889,7 @@ function Financials() {
     setGenerating(true)
     try {
       await generateProjections(biz.id)
-      const updatedBiz = await fetchBusiness(biz.id)
-      setCurrentBusiness(updatedBiz)
+      await refreshBusiness()
     } catch (e) { console.error(e) }
     setGenerating(false)
   }
@@ -962,7 +977,8 @@ function Financials() {
 
 // ─── MILESTONES VIEW ────────────────────────────────────
 function MilestonesView() {
-  const { currentBusiness, setCurrentBusiness } = useAppStore()
+  const { refreshBusiness } = useAppStore()
+  const currentBusiness = useAppStore(s => s.currentBusiness)
   const [showNew, setShowNew] = useState(false)
   const [newTitle, setNewTitle] = useState("")
   const [newCategory, setNewCategory] = useState("product")
@@ -981,8 +997,7 @@ function MilestonesView() {
     if (!newTitle) return
     try {
       await createMilestone(biz.id, { title: newTitle, category: newCategory, targetDate: newTargetDate || null, targetValue: Number(newTargetValue) || 0, metric: newMetric, status: "upcoming" })
-      const updatedBiz = await fetchBusiness(biz.id)
-      setCurrentBusiness(updatedBiz)
+      await refreshBusiness()
       setShowNew(false); setNewTitle(""); setNewMetric(""); setNewTargetValue("")
     } catch (e) { console.error(e) }
   }
@@ -990,8 +1005,7 @@ function MilestonesView() {
   const handleUpdateStatus = async (milestoneId: string, status: string) => {
     try {
       await updateMilestone(biz.id, milestoneId, { status: status as Milestone["status"], achievedDate: status === "achieved" ? new Date().toISOString() : undefined })
-      const updatedBiz = await fetchBusiness(biz.id)
-      setCurrentBusiness(updatedBiz)
+      await refreshBusiness()
     } catch (e) { console.error(e) }
   }
 
@@ -1163,6 +1177,296 @@ function NotificationsView() {
         })}
       </div>
     </div>
+  )
+}
+
+// ─── AI ANALYSIS VIEW ──────────────────────────────────
+function AIAnalysisView() {
+  const currentBusiness = useAppStore(s => s.currentBusiness)
+  const [analysis, setAnalysis] = useState<Awaited<ReturnType<typeof getBusinessAnalysis>> | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const biz = currentBusiness
+
+  const runAnalysis = async () => {
+    if (!biz) return
+    setLoading(true)
+    setError("")
+    try {
+      const result = await getBusinessAnalysis(biz.id)
+      setAnalysis(result)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to analyze business")
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    if (!biz) return
+    let cancelled = false
+    const analyze = async () => {
+      setLoading(true)
+      setError("")
+      try {
+        const result = await getBusinessAnalysis(biz.id)
+        if (!cancelled) setAnalysis(result)
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to analyze business")
+      }
+      if (!cancelled) setLoading(false)
+    }
+    void analyze()
+    return () => { cancelled = true }
+  }, [biz?.id])
+
+  if (!biz) return <EmptyState icon={Gauge} title="No Business Selected" description="Select a business to run AI analysis" />
+
+  const a = analysis?.analysis
+
+  const radarData = a ? [
+    { metric: "Market Fit", value: a.scores.marketFit, fullMark: 100 },
+    { metric: "Financial", value: a.scores.financialHealth, fullMark: 100 },
+    { metric: "Execution", value: a.scores.execution, fullMark: 100 },
+    { metric: "Competition", value: a.scores.competition, fullMark: 100 },
+    { metric: "Risk Mgmt", value: a.scores.risk, fullMark: 100 },
+  ] : []
+
+  const scoreColor = (score: number) => score >= 75 ? "text-emerald-600" : score >= 50 ? "text-amber-600" : "text-red-600"
+  const scoreBg = (score: number) => score >= 75 ? "bg-emerald-500" : score >= 50 ? "bg-amber-500" : "bg-red-500"
+
+  return (
+    <div className="space-y-6">
+      {/* Header with overall score */}
+      <Card className="border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 text-white">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Gauge className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-lg font-semibold">AI Business Analysis</h3>
+              </div>
+              <p className="text-sm text-slate-400">Comprehensive SWOT analysis powered by AI</p>
+            </div>
+            <Button onClick={runAnalysis} disabled={loading} variant="secondary" className="bg-white/10 hover:bg-white/20 text-white border-white/20">
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Analyzing...</> : <><Sparkles className="w-4 h-4 mr-2" />Re-run Analysis</>}
+            </Button>
+          </div>
+          {a && (
+            <div className="mt-4 flex items-center gap-6">
+              <div className="text-center">
+                <div className={cn("text-5xl font-bold", a.overallScore >= 75 ? "text-emerald-400" : a.overallScore >= 50 ? "text-amber-400" : "text-red-400")}>{a.overallScore}</div>
+                <p className="text-xs text-slate-400">Overall Score</p>
+              </div>
+              <div className="flex-1 grid grid-cols-5 gap-2">
+                {Object.entries(a.scores).map(([key, val]) => (
+                  <div key={key} className="text-center">
+                    <div className={cn("text-2xl font-bold", scoreColor(val))}>{val}</div>
+                    <p className="text-[10px] text-slate-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                    <div className="h-1.5 rounded-full bg-white/10 mt-1 overflow-hidden">
+                      <div className={cn("h-full rounded-full", scoreBg(val))} style={{ width: `${val}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {loading && !a && (
+        <Card className="border-slate-200"><CardContent className="p-12 text-center">
+          <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mx-auto mb-4" />
+          <p className="text-slate-500">AI is analyzing your business... This may take 10-15 seconds.</p>
+        </CardContent></Card>
+      )}
+
+      {error && (
+        <Card className="border-red-200 bg-red-50"><CardContent className="p-4">
+          <div className="flex items-center gap-2 text-red-700"><AlertTriangle className="w-5 h-5" /><p className="text-sm">{error}</p></div>
+        </CardContent></Card>
+      )}
+
+      {a && (
+        <>
+          {/* Radar Chart + Summary */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader><CardTitle className="text-base">Performance Radar</CardTitle></CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <RadarChart data={radarData}>
+                    <PolarGrid stroke="#e2e8f0" />
+                    <PolarAngleAxis dataKey="metric" tick={{ fontSize: 11, fill: "#64748b" }} />
+                    <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "#94a3b8" }} />
+                    <Radar name="Score" dataKey="value" stroke="#10b981" fill="#10b981" fillOpacity={0.3} strokeWidth={2} />
+                    <RechartsTooltip />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader><CardTitle className="text-base">Executive Summary</CardTitle></CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none text-slate-600 [&_p]:mb-2">
+                  <ReactMarkdown>{a.summary}</ReactMarkdown>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* SWOT Grid */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <SWOTCard title="Strengths" icon={ThumbsUp} color="emerald" items={a.strengths.map(s => ({ title: s.title, desc: s.description, tag: s.impact }))} />
+            <SWOTCard title="Weaknesses" icon={AlertTriangle} color="red" items={a.weaknesses.map(s => ({ title: s.title, desc: s.description, tag: s.severity }))} />
+            <SWOTCard title="Opportunities" icon={TrendingUp} color="sky" items={a.opportunities.map(s => ({ title: s.title, desc: s.description, tag: s.potential }))} />
+            <SWOTCard title="Threats" icon={AlertOctagon} color="amber" items={a.threats.map(s => ({ title: s.title, desc: s.description, tag: s.likelihood }))} />
+          </div>
+
+          {/* Recommendations */}
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Lightbulb className="w-5 h-5 text-amber-500" />Strategic Recommendations</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {a.recommendations.map((r, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
+                    <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h4 className="font-medium text-sm text-slate-800">{r.title}</h4>
+                        <Badge className={cn("text-[10px]", r.priority === "urgent" ? "bg-red-100 text-red-700" : r.priority === "high" ? "bg-orange-100 text-orange-700" : r.priority === "medium" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600")}>{r.priority}</Badge>
+                        <Badge variant="outline" className="text-[10px] capitalize">{r.category}</Badge>
+                        <Badge variant="outline" className="text-[10px]"><Clock className="w-3 h-3 mr-1" />{r.timeline}</Badge>
+                      </div>
+                      <p className="text-sm text-slate-600">{r.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Wins */}
+          {a.quickWins.length > 0 && (
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Zap className="w-5 h-5 text-amber-500" />Quick Wins</CardTitle><CardDescription>Low-effort, high-impact actions you can take today</CardDescription></CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-3">
+                  {a.quickWins.map((q, i) => (
+                    <div key={i} className="p-3 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Zap className="w-4 h-4 text-amber-500" />
+                        <Badge className="text-[10px] bg-amber-100 text-amber-700 capitalize">{q.effort} effort</Badge>
+                      </div>
+                      <h4 className="font-medium text-sm text-slate-800">{q.title}</h4>
+                      <p className="text-xs text-slate-600 mt-1">{q.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function SWOTCard({ title, icon: Icon, color, items }: { title: string; icon: React.ElementType; color: string; items: { title: string; desc: string; tag: string }[] }) {
+  const colorMap: Record<string, { bg: string; border: string; text: string; icon: string }> = {
+    emerald: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", icon: "text-emerald-500" },
+    red: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", icon: "text-red-500" },
+    sky: { bg: "bg-sky-50", border: "border-sky-200", text: "text-sky-700", icon: "text-sky-500" },
+    amber: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", icon: "text-amber-500" },
+  }
+  const c = colorMap[color] || colorMap.emerald
+  return (
+    <Card className={cn("border shadow-sm", c.border)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2"><Icon className={cn("w-5 h-5", c.icon)} />{title} <Badge variant="outline" className="text-[10px] ml-auto">{items.length}</Badge></CardTitle>
+      </CardHeader>
+      <CardContent>
+        {items.length === 0 ? <p className="text-sm text-slate-400 text-center py-4">No items identified</p> : (
+          <div className="space-y-2">
+            {items.map((item, i) => (
+              <div key={i} className={cn("p-2.5 rounded-lg", c.bg)}>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h4 className="font-medium text-sm text-slate-800 flex-1">{item.title}</h4>
+                  <Badge variant="outline" className={cn("text-[10px] capitalize", c.text)}>{item.tag}</Badge>
+                </div>
+                <p className="text-xs text-slate-600">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── ACTIVITY TIMELINE (in Dashboard) ──────────────────
+function ActivityTimeline() {
+  const { currentBusiness, tasks, notifications } = useAppStore()
+  const biz = currentBusiness
+  if (!biz) return null
+
+  type Activity = { id: string; type: string; title: string; desc: string; time: string; icon: React.ElementType; color: string }
+  const activities: Activity[] = []
+
+  // From completed steps
+  biz.planSteps?.filter(s => s.status === "completed" && s.completedAt).forEach(s => {
+    activities.push({ id: s.id, type: "step", title: `Completed: ${s.title}`, desc: `Step ${s.stepNumber} of your business plan`, time: s.completedAt!, icon: CheckCircle2, color: "text-emerald-600 bg-emerald-100" })
+  })
+
+  // From started steps
+  biz.planSteps?.filter(s => (s.status === "in_progress" || s.status === "current") && s.startedAt).forEach(s => {
+    activities.push({ id: `start-${s.id}`, type: "step", title: `Started: ${s.title}`, desc: `Currently working on step ${s.stepNumber}`, time: s.startedAt!, icon: Play, color: "text-amber-600 bg-amber-100" })
+  })
+
+  // From completed tasks
+  tasks.filter(t => t.status === "completed").forEach(t => {
+    activities.push({ id: t.id, type: "task", title: `Task done: ${t.title}`, desc: t.description || "Task completed", time: t.updatedAt || t.createdAt, icon: CheckCircle2, color: "text-sky-600 bg-sky-100" })
+  })
+
+  // From notifications
+  notifications.filter(n => !n.dismissed).slice(0, 5).forEach(n => {
+    activities.push({ id: n.id, type: "notif", title: n.title, desc: n.message, time: n.createdAt, icon: Bell, color: "text-violet-600 bg-violet-100" })
+  })
+
+  // Sort by time descending
+  activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+  const recent = activities.slice(0, 8)
+
+  if (recent.length === 0) return null
+
+  return (
+    <Card className="border-slate-200 shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Activity className="w-5 h-5 text-emerald-600" />
+          <CardTitle className="text-base">Recent Activity</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+          {recent.map((act, i) => (
+            <div key={act.id} className="flex items-start gap-3">
+              <div className="relative flex flex-col items-center">
+                <div className={cn("w-7 h-7 rounded-full flex items-center justify-center shrink-0", act.color)}>
+                  <act.icon className="w-3.5 h-3.5" />
+                </div>
+                {i < recent.length - 1 && <div className="w-0.5 flex-1 bg-slate-200 my-1" style={{ minHeight: "20px" }} />}
+              </div>
+              <div className="flex-1 min-w-0 pb-2">
+                <p className="text-sm font-medium text-slate-800 truncate">{act.title}</p>
+                <p className="text-xs text-slate-500 line-clamp-1">{act.desc}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">{new Date(act.time).toLocaleDateString()} at {new Date(act.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

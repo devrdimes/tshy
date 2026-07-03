@@ -20,11 +20,14 @@ async function apiRequest<T>(
   options: RequestInit = {},
 ): Promise<T> {
   try {
+    const method = options.method || 'GET'
     const res = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      // Prevent caching for GET requests to ensure fresh data
+      cache: method === 'GET' ? 'no-store' : undefined,
       ...options,
     })
 
@@ -248,17 +251,42 @@ export async function generateAITasks(
 }
 
 export async function getBusinessAnalysis(businessId: string): Promise<{
-  summary: string
-  strengths: string[]
-  weaknesses: string[]
-  opportunities: string[]
-  threats: string[]
-  recommendations: string[]
+  analysis: {
+    overallScore: number
+    scores: {
+      marketFit: number
+      financialHealth: number
+      execution: number
+      competition: number
+      risk: number
+    }
+    strengths: { title: string; description: string; impact: string }[]
+    weaknesses: { title: string; description: string; severity: string }[]
+    opportunities: { title: string; description: string; potential: string }[]
+    threats: { title: string; description: string; likelihood: string }[]
+    recommendations: { title: string; description: string; priority: string; category: string; timeline: string }[]
+    quickWins: { title: string; description: string; effort: string }[]
+    summary: string
+  }
+  businessId: string
+  generatedAt: string
 }> {
   return apiRequest('/api/ai/business-analysis', {
     method: 'POST',
     body: JSON.stringify({ businessId }),
   })
+}
+
+// ── Export ────────────────────────────────────────────────────
+
+export function getExportUrl(businessId: string): string {
+  return `/api/business/${businessId}/export`
+}
+
+export async function exportBusinessPlan(businessId: string): Promise<string> {
+  const res = await fetch(getExportUrl(businessId), { cache: 'no-store' })
+  if (!res.ok) throw new Error('Failed to export business plan')
+  return res.text()
 }
 
 // ── Demo / Init ────────────────────────────────────────────────
