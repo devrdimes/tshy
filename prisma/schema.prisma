@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../db/custom.db"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String   @default("Entrepreneur")
+  email         String   @unique @default("user@planwise.ai")
+  avatar        String   @default("")
+  company       String   @default("")
+  role          String   @default("CEO")
+  onboarded     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  businesses    Business[]
+  notifications Notification[]
+  tasks         Task[]
+  chatMessages  ChatMessage[]
+}
+
+model Business {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String   @default("")
+  description     String   @default("")
+  industry        String   @default("")
+  stage           String   @default("idea") // idea, validation, planning, launch, growth, scale
+  targetMarket    String   @default("")
+  revenueModel    String   @default("")
+  initialCapital  Float    @default(0)
+  monthlyBurnRate Float    @default(0)
+  currentStep     Int      @default(1)
+  totalSteps      Int      @default(10)
+  completed       Boolean  @default(false)
+  logoUrl         String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planSteps       PlanStep[]
+  milestones      Milestone[]
+  financials      Financial[]
+  tasks           Task[]
+
+  @@map("businesses")
+}
+
+model PlanStep {
+  id              String   @id @default(uuid())
+  businessId      String
+  stepNumber      Int
+  title           String
+  description     String   @default("")
+  category        String   @default("") // research, strategy, financial, legal, marketing, operations, product, team
+  status          String   @default("locked") // locked, current, in_progress, completed, skipped
+  guidance        String   @default("")
+  aiTips          String   @default("")
+  checklist       String   @default("[]") // JSON array of checklist items
+  resources       String   @default("[]") // JSON array of resource links
+  estimatedDays   Int      @default(7)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  tasks           Task[]
+
+  @@map("plan_steps")
+}
+
+model Task {
+  id              String   @id @default(uuid())
+  userId          String
+  businessId      String?
+  planStepId      String?
+  title           String
+  description     String   @default("")
+  priority        String   @default("medium") // low, medium, high, urgent
+  status          String   @default("pending") // pending, in_progress, completed, cancelled
+  dueDate         DateTime?
+  reminderAt      DateTime?
+  aiGenerated     Boolean  @default(false)
+  aiSuggestion    String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business        Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  planStep        PlanStep? @relation(fields: [planStepId], references: [id], onDelete: SetNull)
+
+  @@map("tasks")
+}
+
+model Notification {
+  id              String   @id @default(uuid())
+  userId          String
+  type            String   @default("info") // info, warning, success, urgent, ai_suggestion, step_reminder, milestone
+  title           String
+  message         String
+  actionUrl       String   @default("")
+  read            Boolean  @default(false)
+  dismissed       Boolean  @default(false)
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Milestone {
+  id              String   @id @default(uuid())
+  businessId      String
+  title           String
+  description     String   @default("")
+  targetDate      DateTime?
+  achievedDate    DateTime?
+  status          String   @default("upcoming") // upcoming, in_progress, achieved, missed
+  category        String   @default("") // revenue, users, product, team, funding
+  metric          String   @default("")
+  targetValue     Float    @default(0)
+  currentValue    Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("milestones")
+}
+
+model Financial {
+  id              String   @id @default(uuid())
+  businessId      String
+  period          String   // "Q1", "Q2", "month-1", "year-1", etc.
+  revenue         Float    @default(0)
+  expenses        Float    @default(0)
+  profit          Float    @default(0)
+  customers       Int      @default(0)
+  burnRate        Float    @default(0)
+  runway          Float    @default(0)
+  projection      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("financials")
+}
+
+model ChatMessage {
+  id              String   @id @default(uuid())
+  userId          String
+  role            String   // user, assistant
+  content         String
+  context         String   @default("") // business context, step context
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
