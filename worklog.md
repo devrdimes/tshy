@@ -689,3 +689,130 @@ The PlanWise AI SaaS app is a comprehensive AI-powered business planning platfor
 5. **Add collaborative features** — Allow team members to be invited and share business plans
 6. **Performance optimization** — Further reduce bundle size, implement virtualization for long lists
 7. **Add onboarding improvements** — Interactive tutorial, tool tips for first-time users
+
+---
+Task ID: 2-a
+Agent: Auth API Developer
+Task: Build Auth API Routes for Tashyeed (business planning platform)
+
+Work Log:
+- Read worklog.md for project context and existing architecture
+- Confirmed Prisma schema already has User and Session models with all required fields
+- Confirmed bcryptjs and uuid packages are already installed
+- Created 6 auth API route files:
+
+1. **POST /api/auth/signup/route.ts** — User registration
+   - Validates name (required, min 2 chars), email (required, valid format, unique), password (required, min 8 chars, uppercase, lowercase, number)
+   - Hashes password with bcryptjs (salt rounds 12)
+   - Creates user with onboarded: false
+   - Creates session with UUID token, expiresAt = 7 days from now
+   - Returns { success: true, user: { id, name, email, avatar, company, role, onboarded }, token }
+
+2. **POST /api/auth/signin/route.ts** — User login
+   - Validates email and password presence
+   - Finds user by email, compares password with bcrypt
+   - Uses generic "Invalid email or password" error to prevent enumeration
+   - Creates session token (UUID), expiresAt = 7 days
+   - Returns same user + token format as signup
+
+3. **POST /api/auth/signout/route.ts** — User logout
+   - Accepts token from Authorization header (Bearer) or request body
+   - Deletes session(s) from database by token
+   - Returns { success: true }
+
+4. **GET /api/auth/me/route.ts** — Get current authenticated user
+   - Reads Bearer token from Authorization header
+   - Finds session by token with user include
+   - Checks session not expired (deletes expired sessions)
+   - Returns user data or 401 { success: false, error: "Unauthorized" }
+
+5. **POST /api/auth/forgot-password/route.ts** — Request password reset
+   - Validates email presence
+   - If user found, generates resetToken (UUID), sets resetTokenExpiry = 1 hour from now
+   - Always returns identical success message to prevent email enumeration
+   - Returns { success: true, message: "If an account with that email exists, a reset link has been sent." }
+
+6. **POST /api/auth/reset-password/route.ts** — Reset password with token
+   - Validates token (required) and password (required, min 8 chars)
+   - Finds user by resetToken where resetTokenExpiry > now
+   - Hashes new password with bcrypt (salt rounds 12)
+   - Clears resetToken and resetTokenExpiry
+   - Returns { success: true, message: "Password has been reset." }
+
+All routes follow consistent error format: { success: false, error: "message" }
+All routes use `import { db } from '@/lib/db'` for Prisma access
+Lint passes with zero errors
+
+---
+Task ID: 2-b
+Agent: Landing Page Developer
+Task: Create Tashyeed Landing Page Component
+
+Work Log:
+- Read worklog.md to understand project context
+- Read APP_CONFIG from @/lib/constants for app name and tagline
+- Reviewed available shadcn/ui components (button, card, badge, separator, sheet, etc.)
+- Reviewed existing page.tsx structure and package.json for available dependencies
+- Created /home/z/my-project/src/components/tashyeed/landing-page.tsx — a comprehensive "use client" landing page component
+
+Component Details:
+- **NavBar**: Sticky top nav with Tashyeed logo (Building2 icon), nav links (Features, How It Works, Pricing), Sign In (outline) + Get Started (emerald primary) buttons, mobile hamburger with Sheet component, scroll-aware background blur
+- **Hero Section**: Full viewport height, gradient mesh background, floating animated particles (geometric shapes + dots), badge, headline with emerald accent, subheadline, dual CTAs, stats row (10 Steps, 500+ Entrepreneurs, 98% Satisfaction)
+- **Social Proof**: "Trusted by 500+ entrepreneurs worldwide" with 6 placeholder company names, staggered fade-in animation
+- **Features Section**: 6 feature cards in 3-column grid (ListTodo, BookOpen, CheckSquare, TrendingUp, Flag, BarChart3 icons), each with emerald icon container, title, description, hover effects
+- **How It Works Section**: 3-step horizontal timeline with numbered circles (emerald), connector line on desktop, arrow connectors on mobile, step descriptions
+- **Pricing Section**: 3 tiers (Starter Free, Professional $29/mo, Enterprise Custom), "Most Popular" badge on Professional, feature lists with Check icons, CTA buttons
+- **CTA Section**: Final call to action with "Ready to Build Your Business Plan?" headline, "Get Started" button
+- **Footer**: Tashyeed logo + tagline, 4 link columns (Product, Company, Legal, Support), social icons (Twitter, LinkedIn, GitHub, Mail), copyright
+
+Technical Implementation:
+- Props: onSignIn: () => void, onSignUp: () => void
+- Framer Motion for all animations (fadeInUp, staggerContainer, scaleIn variants)
+- next-themes compatible (theme-aware classes throughout)
+- Emerald/teal primary accent color (emerald-600/500/400 for dark mode)
+- Uses shadcn/ui: Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Badge, Separator, Sheet
+- Uses lucide-react icons: Building2, ListTodo, BookOpen, CheckSquare, TrendingUp, Flag, BarChart3, ArrowRight, Menu, X, ChevronRight, Check, Github, Twitter, Linkedin, Mail
+- Smooth scroll for internal nav links via scrollIntoView
+- Responsive: mobile hamburger menu, responsive grid breakpoints (sm:, md:, lg:)
+- Accessible: semantic HTML, aria-labels, role="list", sr-only close button in Sheet
+- Lint passes with zero errors
+- Dev server compiles and renders successfully
+
+---
+Task ID: 2-c
+Agent: Auth UI Developer
+Task: Build Tashyeed Auth UI Components
+
+Work Log:
+- Created `/src/components/tashyeed/` directory for all auth components
+- Built `password-strength.tsx` — utility component with:
+  - `getPasswordStrength()` function: evaluates weak/medium/strong
+  - `PasswordStrengthIndicator` component: 3-segment colored bar with label
+  - Weak = red (< 8 chars or missing requirements), Medium = amber (8+ chars + some reqs), Strong = green (8+ chars + upper + lower + number)
+- Built `auth-modal.tsx` — main auth modal with:
+  - Dialog-based modal with `open`/`onOpenChange`/`onSuccess` props
+  - Tashyeed branding header (Building2 icon + name) with subtle gradient background
+  - Tabs component with "Sign In" and "Create Account" tabs
+  - **Sign In tab**: email input, password with Eye/EyeOff toggle, "Forgot password?" link, loading state, error Alert, "Don't have an account? Create one" link
+  - **Create Account tab**: full name, email, password with strength indicator, confirm password with mismatch warning, terms checkbox, loading state, error Alert, "Already have an account? Sign in" link
+  - **Forgot Password view**: email input, "Send Reset Link" button, success state with Mail icon + message, "Back to Sign In" link
+  - All views animated with framer-motion AnimatePresence
+  - State fully reset when modal closes
+  - API calls: POST /api/auth/signin, /api/auth/signup, /api/auth/forgot-password
+  - On success: stores token in localStorage as 'tashyeed_token', calls onSuccess callback
+- Built `reset-password-form.tsx` — standalone reset password form with:
+  - Takes `token` prop (from URL)
+  - New password input with strength indicator and show/hide toggle
+  - Confirm password input with mismatch warning
+  - "Reset Password" button with loading state
+  - Success state with CheckCircle2 icon and confirmation message
+  - API call: POST /api/auth/reset-password with { token, password }
+- Created `index.ts` barrel export file
+- All components are "use client"
+- Uses shadcn/ui components (Dialog, Tabs, Button, Input, Label, Checkbox, Alert)
+- Uses lucide-react icons (Building2, Eye, EyeOff, Loader2, ArrowLeft, Mail, CheckCircle2)
+- Uses framer-motion for subtle animations
+- Theme-aware Tailwind CSS classes throughout
+- Clean, professional design consistent with Linear/Vercel auth aesthetic
+- No AI icons (Sparkles, Brain) used
+- Lint passes with zero errors

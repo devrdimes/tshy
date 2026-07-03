@@ -1,5 +1,5 @@
 // ============================================================
-// PlanWise AI — Typed API Helper
+// Tashyeed — Typed API Helper
 // ============================================================
 
 import type {
@@ -15,17 +15,28 @@ import type {
 
 // ── Generic fetch wrapper ──────────────────────────────────────
 
+function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem('tashyeed_token')
+}
+
 async function apiRequest<T>(
   url: string,
   options: RequestInit = {},
 ): Promise<T> {
   try {
     const method = options.method || 'GET'
+    const token = getAuthToken()
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string>),
+    }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const res = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
       // Prevent caching for GET requests to ensure fresh data
       cache: method === 'GET' ? 'no-store' : undefined,
       ...options,
@@ -33,6 +44,14 @@ async function apiRequest<T>(
 
     if (!res.ok) {
       const errorBody = await res.text().catch(() => 'Unknown error')
+      // If 401, clear auth and redirect
+      if (res.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('tashyeed_token')
+          // Trigger store to update
+          window.dispatchEvent(new CustomEvent('tashyeed:unauthorized'))
+        }
+      }
       throw new Error(`API ${res.status}: ${res.statusText} — ${errorBody}`)
     }
 
@@ -48,6 +67,42 @@ async function apiRequest<T>(
     }
     throw err
   }
+}
+
+// ── Auth ───────────────────────────────────────────────────────
+
+export async function signup(data: { name: string; email: string; password: string }): Promise<{ user: User; token: string }> {
+  return apiRequest('/api/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function signin(data: { email: string; password: string }): Promise<{ user: User; token: string }> {
+  return apiRequest('/api/auth/signin', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function signout(): Promise<{ success: boolean }> {
+  return apiRequest('/api/auth/signout', {
+    method: 'POST',
+  })
+}
+
+export async function forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+  return apiRequest('/api/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function resetPassword(token: string, password: string): Promise<{ success: boolean; message: string }> {
+  return apiRequest('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  })
 }
 
 // ── User ───────────────────────────────────────────────────────
@@ -227,9 +282,9 @@ export async function generateNotifications(userId: string, businessId: string):
   })
 }
 
-// ── AI / Chat ─────────────────────────────────────────────────
+// ── Advisor / Chat ────────────────────────────────────────────
 
-export async function chatWithAI(
+export async function chatWithAdvisor(
   message: string,
   businessId?: string,
   stepId?: string,
@@ -240,7 +295,7 @@ export async function chatWithAI(
   })
 }
 
-export async function generateAITasks(
+export async function generateSuggestedTasks(
   businessId: string,
   stepId?: string,
 ): Promise<Task[]> {

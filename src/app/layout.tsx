@@ -15,24 +15,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PlanWise AI — AI-Powered Business Planning Partner",
-  description: "PlanWise AI guides entrepreneurs through a structured 10-step business planning process with AI-powered insights, task management, and financial projections.",
-  keywords: ["business planning", "AI advisor", "startup", "entrepreneur", "SaaS", "financial projections"],
-  authors: [{ name: "PlanWise AI" }],
+  title: "Tashyeed — Structured Business Planning Platform",
+  description: "Tashyeed guides entrepreneurs through a structured 10-step business planning process with expert frameworks, task management, financial projections, and milestone tracking.",
+  keywords: ["business planning", "startup", "entrepreneur", "SaaS", "financial projections", "business strategy"],
+  authors: [{ name: "Tashyeed" }],
   icons: {
     icon: "/logo.svg",
   },
   openGraph: {
-    title: "PlanWise AI",
-    description: "AI-Powered Business Planning Partner",
-    url: "https://planwise.ai",
-    siteName: "PlanWise AI",
+    title: "Tashyeed",
+    description: "Structure Your Vision. Build With Confidence.",
+    url: "https://tashyeed.com",
+    siteName: "Tashyeed",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "PlanWise AI",
-    description: "AI-Powered Business Planning Partner",
+    title: "Tashyeed",
+    description: "Structure Your Vision. Build With Confidence.",
   },
 };
 

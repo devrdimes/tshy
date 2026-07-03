@@ -1,5 +1,5 @@
 // ============================================================
-// PlanWise AI — Zustand Store
+// Tashyeed — Zustand Store
 // ============================================================
 
 import { create } from 'zustand'
@@ -53,7 +53,7 @@ export interface PlanStep {
   category: string
   status: 'locked' | 'current' | 'in_progress' | 'completed' | 'skipped'
   guidance: string
-  aiTips: string
+  tips: string
   checklist: string // JSON array
   resources: string // JSON array
   estimatedDays: number
@@ -69,8 +69,8 @@ export interface Task {
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
   dueDate: string | null
   reminderAt: string | null
-  aiGenerated: boolean
-  aiSuggestion: string
+  systemGenerated: boolean
+  suggestion: string
   businessId: string | null
   planStepId: string | null
 }
@@ -82,7 +82,7 @@ export interface Notification {
     | 'warning'
     | 'success'
     | 'urgent'
-    | 'ai_suggestion'
+    | 'advisor_tip'
     | 'step_reminder'
     | 'milestone'
   title: string
@@ -131,6 +131,13 @@ export interface ChatMessage {
 // ── App State Interface ───────────────────────────────────────
 
 interface AppState {
+  // Auth
+  isAuthenticated: boolean
+  authToken: string | null
+  setAuth: (token: string, user: User) => void
+  clearAuth: () => void
+  checkAuth: () => Promise<boolean>
+
   // User
   user: User | null
   setUser: (user: User) => void
@@ -174,6 +181,7 @@ interface AppState {
     | 'analysis'
     | 'settings'
     | 'onboarding'
+    | 'landing'
   setActiveView: (view: AppState['activeView']) => void
   chatOpen: boolean
   setChatOpen: (open: boolean) => void
@@ -187,6 +195,62 @@ interface AppState {
 // ── Store ─────────────────────────────────────────────────────
 
 export const useAppStore = create<AppState>((set, get) => ({
+  // Auth
+  isAuthenticated: false,
+  authToken: null,
+  setAuth: (token, user) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tashyeed_token', token)
+    }
+    set({ authToken: token, user, isAuthenticated: true })
+  },
+  clearAuth: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('tashyeed_token')
+    }
+    set({
+      authToken: null,
+      user: null,
+      isAuthenticated: false,
+      businesses: [],
+      currentBusiness: null,
+      tasks: [],
+      notifications: [],
+      chatMessages: [],
+      currentStep: null,
+      activeView: 'landing',
+    })
+  },
+  checkAuth: async () => {
+    if (typeof window === 'undefined') return false
+    const token = localStorage.getItem('tashyeed_token')
+    if (!token) {
+      set({ isAuthenticated: false, activeView: 'landing' })
+      return false
+    }
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) {
+        localStorage.removeItem('tashyeed_token')
+        set({ isAuthenticated: false, authToken: null, activeView: 'landing' })
+        return false
+      }
+      const data = await res.json()
+      if (data.success && data.user) {
+        set({ authToken: token, user: data.user, isAuthenticated: true })
+        return true
+      }
+      localStorage.removeItem('tashyeed_token')
+      set({ isAuthenticated: false, authToken: null, activeView: 'landing' })
+      return false
+    } catch {
+      set({ isAuthenticated: false, activeView: 'landing' })
+      return false
+    }
+  },
+
   // User
   user: null,
   setUser: (user) => set({ user }),
@@ -294,7 +358,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // UI State
   sidebarOpen: true,
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
-  activeView: 'onboarding',
+  activeView: 'landing',
   setActiveView: (view) => set({ activeView: view }),
   chatOpen: false,
   setChatOpen: (open) => set({ chatOpen: open }),
@@ -305,10 +369,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   initialize: async () => {
     set({ isLoading: true })
     try {
-      // 1. Try to init demo data (creates if not exists, no-ops if exists)
+      // 1. Check authentication
+      const isAuth = await get().checkAuth()
+      if (!isAuth) {
+        set({ isLoading: false, activeView: 'landing' })
+        return
+      }
+
+      // 2. Init demo data (creates if not exists, no-ops if exists)
       await initializeDemo()
 
-      // 2. Load all data in parallel
+      // 3. Load all data in parallel
       const [user, businesses, notifData] = await Promise.all([
         fetchUser(),
         fetchBusinesses(),
@@ -372,7 +443,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       })
     } catch (error) {
       console.error('Failed to initialize app:', error)
-      set({ activeView: 'onboarding' })
+      set({ activeView: 'landing' })
     } finally {
       set({ isLoading: false })
     }

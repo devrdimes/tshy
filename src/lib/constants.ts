@@ -1,6 +1,18 @@
 // ============================================================
-// PlanWise AI — Constants
+// Tashyeed — Constants
 // ============================================================
+
+// ---- App Config --------------------------------------------------------
+
+export const APP_CONFIG = {
+  name: 'Tashyeed',
+  tagline: 'Structure Your Vision. Build With Confidence.',
+  description:
+    'Tashyeed is a structured business planning platform that guides entrepreneurs step-by-step from idea to execution — with expert frameworks, task management, financial projections, and milestone tracking.',
+  version: '2.0.0',
+  totalPlanSteps: 10,
+  defaultStepStatus: 'locked' as const,
+} as const
 
 // ---- Business Stage --------------------------------------------------------
 
@@ -63,16 +75,16 @@ export const CATEGORIES = {
   research: {
     label: 'Research',
     icon: 'Search',
-    color: 'text-indigo-600',
-    bg: 'bg-indigo-100',
-    border: 'border-indigo-300',
+    color: 'text-violet-600',
+    bg: 'bg-violet-100',
+    border: 'border-violet-300',
   },
   strategy: {
     label: 'Strategy',
     icon: 'Target',
-    color: 'text-violet-600',
-    bg: 'bg-violet-100',
-    border: 'border-violet-300',
+    color: 'text-rose-600',
+    bg: 'bg-rose-100',
+    border: 'border-rose-300',
   },
   financial: {
     label: 'Financial',
@@ -182,11 +194,11 @@ export const NOTIFICATION_TYPES = {
     color: 'text-red-600',
     bg: 'bg-red-100',
   },
-  ai_suggestion: {
-    label: 'AI Suggestion',
-    icon: 'Sparkles',
-    color: 'text-violet-600',
-    bg: 'bg-violet-100',
+  advisor_tip: {
+    label: 'Advisor Tip',
+    icon: 'Lightbulb',
+    color: 'text-amber-600',
+    bg: 'bg-amber-100',
   },
   step_reminder: {
     label: 'Step Reminder',
@@ -372,15 +384,3 @@ export const TARGET_MARKETS = [
   'Small Business Owners',
   'Other',
 ] as const
-
-// ---- Default App Config ----------------------------------------------------
-
-export const APP_CONFIG = {
-  name: 'PlanWise AI',
-  tagline: 'Your AI-Powered Business Planning Partner',
-  description:
-    'PlanWise AI guides entrepreneurs through a structured 10-step business planning process with AI-powered insights, task management, and financial projections.',
-  version: '1.0.0',
-  totalPlanSteps: 10,
-  defaultStepStatus: 'locked' as const,
-} as const
