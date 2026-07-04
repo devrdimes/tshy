@@ -20,7 +20,11 @@ export const metadata: Metadata = {
   keywords: ["business planning", "startup", "entrepreneur", "SaaS", "financial projections", "business strategy"],
   authors: [{ name: "Tashyeed" }],
   icons: {
-    icon: "/logo.svg",
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    apple: "/favicon.png",
+    shortcut: "/favicon.png",
   },
   openGraph: {
     title: "Tashyeed",
