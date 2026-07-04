@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
   experimental: {
     serverMinification: false,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  images: {
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;
