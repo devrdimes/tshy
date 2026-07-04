@@ -4,7 +4,13 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { answers } = body;
+    const { answers, language } = body;
+    const lang = language || 'en';
+    const langInstructions: Record<string, string> = {
+      en: 'Respond entirely in English.',
+      ar: 'يجب أن ترد باللغة العربية فقط (ما عدا الأرقام والنسب المئوية إن لزم الأمر).',
+      fr: 'Réponds entièrement en français.',
+    };
 
     if (!answers || typeof answers !== 'object') {
       return NextResponse.json({ success: false, error: 'Answers are required' }, { status: 400 });
@@ -22,6 +28,11 @@ export async function POST(request: NextRequest) {
     const systemPrompt = `You are the world's most elite venture capital analyst and startup strategist — a hybrid of a Y Combinator partner, a McKinsey senior consultant, and a seasoned serial entrepreneur with 20+ exits.
 
 Your job is to analyze a startup idea based on the founder's answers to a questionnaire and produce an honest, brutally detailed, professional report.
+
+LANGUAGE INSTRUCTION (MANDATORY): ${langInstructions[lang]}
+IMPORTANT: In the "Scoring Dashboard" table, you must include a row with the exact metric name (even if translating the rest of the text): "Overall Success Probability" so our system can parse the score correctly.
+
+---
 
 You MUST be radically honest. Do NOT sugarcoat. If the idea has fatal flaws, say so clearly with a percentage. If it's exceptional, say so. Investors trust you because you tell the truth.
 

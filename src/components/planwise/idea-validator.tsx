@@ -197,7 +197,10 @@ export function IdeaValidatorView() {
       const response = await fetch('/api/ai/idea-validator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: finalAnswers }),
+        body: JSON.stringify({ 
+          answers: finalAnswers,
+          language: useAppStore.getState().language 
+        }),
       })
 
       if (!response.ok) throw new Error('Failed')
@@ -232,7 +235,8 @@ export function IdeaValidatorView() {
           }
         }
         // Extract success score once complete
-        const scoreMatch = fullReport.match(/Overall Success Probability\s*\|\s*(\d+)%/i)
+        // Look for any line that contains '%', 'Overall Success', 'نجاح', 'Succès' and a number
+        const scoreMatch = fullReport.match(/(?:Overall Success|نجاح|Succès|Probability).*?\|\s*(\d+)%/i) || fullReport.match(/(\d+)%/);
         if (scoreMatch && scoreMatch[1]) {
            setSuccessScore(parseInt(scoreMatch[1], 10))
         }
