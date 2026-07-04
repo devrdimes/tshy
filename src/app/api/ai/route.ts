@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth-server';
-import ZAI from 'z-ai-web-dev-sdk';
 
 // POST /api/ai — Chat with AI business advisor
 export async function POST(request: NextRequest) {

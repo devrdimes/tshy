@@ -69,10 +69,14 @@ export async function GET(request: NextRequest) {
         onboarded: user.onboarded,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[AUTH] Me error:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { 
+        success: false, 
+        error: error?.message || 'Internal server error',
+        stack: error?.stack || 'No stack trace'
+      },
       { status: 500 }
     );
   }

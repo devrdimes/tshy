@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import ZAI from 'z-ai-web-dev-sdk';
 
 // POST /api/notifications/generate — AI generates smart notifications/reminders
 export async function POST(request: NextRequest) {

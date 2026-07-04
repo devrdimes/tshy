@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = "force-dynamic";
 import { db } from '@/lib/db';
-import ZAI from 'z-ai-web-dev-sdk';
+import { getCurrentUser } from '@/lib/auth-server';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
