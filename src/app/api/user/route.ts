@@ -1,23 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = "force-dynamic";
 import { db } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth-server';
 
 // GET /api/user — Get user info (create default if not exists)
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    let user = await db.user.findFirst();
+    let user = await getCurrentUser(request);
 
     if (!user) {
-      user = await db.user.create({
-        data: {
-          name: 'Entrepreneur',
-          email: 'user@planwise.ai',
-          role: 'CEO',
-          company: '',
-          avatar: '',
-          onboarded: false,
-        },
-      });
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     return NextResponse.json({ success: true, data: user });
@@ -36,14 +31,12 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { name, email, company, role, avatar, onboarded } = body;
 
-    let user = await db.user.findFirst();
+    let user = await getCurrentUser(request);
     if (!user) {
-      user = await db.user.create({
-        data: {
-          name: 'Entrepreneur',
-          email: 'user@planwise.ai',
-        },
-      });
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     const updateData: Record<string, unknown> = {};

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = "force-dynamic";
 import { db } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth-server';
 
 // GET /api/notifications — Get notifications for user
 export async function GET(request: NextRequest) {
   try {
-    const user = await db.user.findFirst();
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'No user found' },
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
 // PUT /api/notifications — Mark notification as read or mark all as read
 export async function PUT(request: NextRequest) {
   try {
-    const user = await db.user.findFirst();
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'No user found' },
@@ -122,7 +123,7 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/notifications — Dismiss notification
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await db.user.findFirst();
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'No user found' },

@@ -83,12 +83,16 @@ export default function TashyeedApp() {
     setAuthOpen(true)
   }, [])
 
-  const handleAuthSuccess = useCallback(async (user: { id: string; name: string; email: string }, token: string) => {
-    setAuth(token, { ...user, avatar: '', company: '', role: 'CEO', onboarded: false })
+  const handleAuthSuccess = useCallback(async (user: any, token: string) => {
+    setAuth(token, user)
     setAuthOpen(false)
     // Initialize app data after auth
     try {
       await initialize()
+      // If user is brand new (not onboarded), drop them straight into idea validator
+      if (user.onboarded === false) {
+        useAppStore.getState().setActiveView('idea-validator')
+      }
     } catch (e) {
       console.error('Failed to initialize after auth:', e)
     }

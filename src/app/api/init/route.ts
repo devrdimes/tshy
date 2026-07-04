@@ -1,25 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import bcrypt from 'bcryptjs';
+import { getCurrentUser } from '@/lib/auth-server';
 
 // POST /api/init — Initialize demo data for the app
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    // Create default user (only if no users exist)
-    let user = await db.user.findFirst();
+    let user = await getCurrentUser(request);
     if (!user) {
-      const hashedPassword = await bcrypt.hash('demo1234', 12);
-      user = await db.user.create({
-        data: {
-          name: 'Entrepreneur',
-          email: 'demo@tashyeed.com',
-          password: hashedPassword,
-          role: 'CEO',
-          company: 'Tashyeed Demo',
-          avatar: '',
-          onboarded: true,
-        },
-      });
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     // Check if demo business already exists

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = "force-dynamic";
 import { db } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth-server';
 
 // GET /api/tasks — Get all tasks for user (with optional filters)
 export async function GET(request: NextRequest) {
   try {
-    const user = await db.user.findFirst();
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'No user found' },
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
 // POST /api/tasks — Create task
 export async function POST(request: NextRequest) {
   try {
-    const user = await db.user.findFirst();
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'No user found' },
