@@ -71,10 +71,14 @@ export async function POST(request: NextRequest) {
       },
       token,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[AUTH] Signin error:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { 
+        success: false, 
+        error: error?.message || 'Internal server error',
+        stack: error?.stack || 'No stack trace'
+      },
       { status: 500 }
     );
   }
