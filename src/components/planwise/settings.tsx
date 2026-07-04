@@ -5,7 +5,7 @@ import { useAppStore } from "@/lib/store"
 import { STAGES } from "@/lib/constants"
 import { updateUser } from "@/lib/api"
 import {
-  Plus, Building2, CheckCircle2, Loader2, User, Mail, Briefcase, Shield, Trash2, Palette, Bell as BellIcon, Globe
+  Plus, Building2, CheckCircle2, Loader2, User, Mail, Briefcase, Shield, Trash2, Palette, Bell as BellIcon, Globe, LogOut
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
-export function SettingsView({ onAddBusiness }: { onAddBusiness?: () => void }) {
+export function SettingsView({ onAddBusiness, onSignOut }: { onAddBusiness?: () => void; onSignOut?: () => void }) {
   const { user, businesses } = useAppStore()
   const [name, setName] = useState(user?.name || "")
   const [company, setCompany] = useState(user?.company || "")
@@ -170,7 +170,7 @@ export function SettingsView({ onAddBusiness }: { onAddBusiness?: () => void }) 
           <div className="grid grid-cols-2 gap-3">
             {[
               { keys: "Alt + 1-8", desc: "Navigate views" },
-              { keys: "Alt + C", desc: "Toggle AI Chat" },
+              { keys: "Alt + C", desc: "Toggle Advisor Chat" },
               { keys: "Alt + D", desc: "Toggle dark mode" },
               { keys: "Esc", desc: "Close dialogs" },
             ].map(shortcut => (
@@ -179,6 +179,25 @@ export function SettingsView({ onAddBusiness }: { onAddBusiness?: () => void }) 
                 <span className="text-xs text-muted-foreground">{shortcut.desc}</span>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Account */}
+      <Card className="border-border shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><LogOut className="w-5 h-5 text-red-500" />Account</CardTitle>
+          <CardDescription>Manage your account and session</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Sign Out</p>
+              <p className="text-xs text-muted-foreground">Sign out of your Tashyeed account</p>
+            </div>
+            <Button variant="outline" onClick={onSignOut} className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 dark:hover:bg-red-950/30 dark:border-red-800">
+              <LogOut className="w-4 h-4 mr-2" /> Sign Out
+            </Button>
           </div>
         </CardContent>
       </Card>

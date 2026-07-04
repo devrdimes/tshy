@@ -6,8 +6,7 @@ import { useAppStore, type PlanStep, type Financial } from "@/lib/store"
 import { STAGES, CATEGORIES, STEP_STATUSES, NOTIFICATION_TYPES } from "@/lib/constants"
 import { updatePlanStep } from "@/lib/api"
 import {
-  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, ChevronRight, Plus, Sparkles, CheckCircle2, Circle, Lock, Clock, AlertTriangle, TrendingUp, Rocket, Target, BarChart3, Play, Lightbulb, Brain, Loader2, Activity, Flame, Zap, ArrowUpRight, Calendar
-} from "lucide-react"
+  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, ChevronRight, Plus, CheckCircle2, Circle, Lock, Clock, AlertTriangle, TrendingUp, Rocket, Target, BarChart3, Play, Building2, Loader2, Activity, Flame, Zap, ArrowUpRight, Calendar, Lightbulb } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -188,9 +187,9 @@ function CurrentStepCard({ step, businessId, onCelebrate }: { step: PlanStep | u
           <div className="flex items-start gap-2"><Lightbulb className="w-4 h-4 text-sky-600 shrink-0 mt-0.5 animate-pulse" /><p className="text-sm text-sky-700 dark:text-sky-300">{step.guidance}</p></div>
         </div>
       )}
-      {step.aiTips && (
+      {step.tips && (
         <div className="bg-violet-50 border-l-4 border-violet-400 rounded-r-lg p-3 dark:bg-violet-950/30 dark:border-violet-600">
-          <div className="flex items-start gap-2"><Sparkles className="w-4 h-4 text-violet-600 shrink-0 mt-0.5" /><p className="text-sm text-violet-700 dark:text-violet-300">{step.aiTips}</p></div>
+          <div className="flex items-start gap-2"><Lightbulb className="w-4 h-4 text-violet-600 shrink-0 mt-0.5" /><p className="text-sm text-violet-700 dark:text-violet-300">{step.tips}</p></div>
         </div>
       )}
 
@@ -382,12 +381,12 @@ export function Dashboard({ onCelebrate }: { onCelebrate?: () => void }) {
           </div>
           <h2 className="text-2xl md:text-3xl font-bold mb-2">Welcome back, {user?.name || "Entrepreneur"}! 👋</h2>
           <p className="text-emerald-50/90 text-sm md:text-base max-w-2xl">
-            {biz ? `Your "${biz.name}" business is ${progress}% complete. ${progress < 50 ? "Keep pushing — every step counts!" : progress < 100 ? "You're making great progress! Almost there." : "Congratulations! Your plan is complete!"}` : "Start building your business plan with AI-powered guidance."}
+            {biz ? `Your "${biz.name}" business is ${progress}% complete. ${progress < 50 ? "Keep pushing — every step counts!" : progress < 100 ? "You're making great progress! Almost there." : "Congratulations! Your plan is complete!"}` : "Start building your business plan with guidance."}
           </p>
           <div className="flex flex-wrap gap-3 mt-5">
             {biz && <Button size="sm" variant="secondary" onClick={() => setActiveView("planner")} className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"><ListTodo className="w-4 h-4 mr-2" />Continue Planning</Button>}
-            <Button size="sm" variant="secondary" onClick={() => useAppStore.getState().setChatOpen(true)} className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"><Sparkles className="w-4 h-4 mr-2" />Ask AI Advisor</Button>
-            {biz && <Button size="sm" variant="secondary" onClick={() => setActiveView("analysis")} className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm transition-all hover:-translate-y-0.5"><BarChart3 className="w-4 h-4 mr-2" />Run AI Analysis</Button>}
+            <Button size="sm" variant="secondary" onClick={() => useAppStore.getState().setChatOpen(true)} className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"><Lightbulb className="w-4 h-4 mr-2" />Ask Advisor</Button>
+            {biz && <Button size="sm" variant="secondary" onClick={() => setActiveView("analysis")} className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm transition-all hover:-translate-y-0.5"><BarChart3 className="w-4 h-4 mr-2" />Run Business Analysis</Button>}
           </div>
         </div>
       </motion.div>
@@ -433,7 +432,7 @@ export function Dashboard({ onCelebrate }: { onCelebrate?: () => void }) {
           <Card className="border-border shadow-sm">
             <CardHeader className="pb-3"><CardTitle className="text-base">Quick Actions</CardTitle></CardHeader>
             <CardContent className="space-y-1.5">
-              <QuickAction icon={Sparkles} label="Ask AI for Advice" description="Get personalized guidance" onClick={() => useAppStore.getState().setChatOpen(true)} />
+              <QuickAction icon={Lightbulb} label="Ask for Advice" description="Get personalized guidance" onClick={() => useAppStore.getState().setChatOpen(true)} />
               <QuickAction icon={Plus} label="Add New Task" description="Create a new action item" onClick={() => setActiveView("tasks")} />
               <QuickAction icon={BarChart3} label="View Financials" description="Check revenue projections" onClick={() => setActiveView("financials")} />
               <QuickAction icon={Flag} label="Check Milestones" description="Track key achievements" onClick={() => setActiveView("milestones")} />
@@ -498,7 +497,7 @@ export function Dashboard({ onCelebrate }: { onCelebrate?: () => void }) {
               <div className="text-center py-10">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-3"><DollarSign className="w-8 h-8 text-muted-foreground" /></div>
                 <p className="font-medium text-foreground">No financial data yet</p>
-                <p className="text-sm text-muted-foreground mt-1">Generate AI projections to see your outlook</p>
+                <p className="text-sm text-muted-foreground mt-1">Generate projections to see your outlook</p>
               </div>
             )}
           </CardContent>

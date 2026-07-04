@@ -4,33 +4,33 @@ import { useTheme } from "next-themes"
 import { useAppStore } from "@/lib/store"
 import { getExportUrl } from "@/lib/api"
 import {
-  Bell, Sparkles, Download, Sun, Moon, Building2, Search, Keyboard
+  Bell, Download, Sun, Moon, Building2, Search, LogOut, MessageSquare
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel
 } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 
-export function Header() {
+interface HeaderProps {
+  onSignOut?: () => void
+}
+
+export function Header({ onSignOut }: HeaderProps) {
   const { activeView, currentBusiness, setChatOpen, unreadCount, setActiveView, user } = useAppStore()
   const { theme, setTheme } = useTheme()
-  const viewTitles: Record<string, string> = { dashboard: "Dashboard", planner: "Step-by-Step Plan", tasks: "Tasks", financials: "Financial Projections", milestones: "Milestones", notifications: "Notifications", analysis: "AI Business Analysis", settings: "Settings" }
-  const viewIcons: Record<string, string> = { dashboard: "📊", planner: "📋", tasks: "✅", financials: "💰", milestones: "🎯", notifications: "🔔", analysis: "🤖", settings: "⚙️" }
-  const viewPaths: Record<string, string[]> = { dashboard: ["Home"], planner: ["Home", "Step-by-Step Plan"], tasks: ["Home", "Tasks"], financials: ["Home", "Financial Projections"], milestones: ["Home", "Milestones"], notifications: ["Home", "Notifications"], analysis: ["Home", "AI Analysis"], settings: ["Home", "Settings"] }
+  const viewTitles: Record<string, string> = { dashboard: "Dashboard", planner: "Step-by-Step Plan", tasks: "Tasks", financials: "Financial Projections", milestones: "Milestones", notifications: "Notifications", analysis: "Business Analysis", settings: "Settings" }
+  const viewPaths: Record<string, string[]> = { dashboard: ["Home"], planner: ["Home", "Step-by-Step Plan"], tasks: ["Home", "Tasks"], financials: ["Home", "Financial Projections"], milestones: ["Home", "Milestones"], notifications: ["Home", "Notifications"], analysis: ["Home", "Business Analysis"], settings: ["Home", "Settings"] }
 
   return (
     <header className="border-b border-border bg-card/80 backdrop-blur-md px-4 md:px-6 py-3 sticky top-0 z-40">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 md:gap-4 ml-10 md:ml-0">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{viewIcons[activeView] || "📊"}</span>
-              <h2 className="text-xl font-bold text-foreground">{viewTitles[activeView] || "Dashboard"}</h2>
-            </div>
+            <h2 className="text-xl font-bold text-foreground">{viewTitles[activeView] || "Dashboard"}</h2>
             <Breadcrumb className="mt-0.5">
               <BreadcrumbList>
                 {(viewPaths[activeView] || ["Home"]).map((path, i, arr) => (
@@ -111,10 +111,39 @@ export function Header() {
             <TooltipContent>{unreadCount > 0 ? `${unreadCount} unread notifications` : "No new notifications"}</TooltipContent>
           </Tooltip>
 
-          {/* AI Advisor */}
+          {/* Advisor Chat */}
           <Button onClick={() => setChatOpen(true)} className="hidden sm:flex bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white gap-2 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
-            <Sparkles className="w-4 h-4" /> AI Advisor
+            <MessageSquare className="w-4 h-4" /> Advisor
           </Button>
+
+          {/* User Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-2 px-2">
+                <Avatar className="w-7 h-7">
+                  <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xs font-bold">
+                    {user?.name?.charAt(0) || "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user?.name || "User"}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user?.email || ""}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setActiveView("settings")}>
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onSignOut} className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30">
+                <LogOut className="w-4 h-4 mr-2" /> Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

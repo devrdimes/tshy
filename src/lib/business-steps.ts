@@ -1,5 +1,5 @@
 // ============================================================
-// PlanWise AI — Default 10 Business Planning Steps
+// Tashyeed — Default 10 Business Planning Steps
 // ============================================================
 // These are the canonical step definitions used when a new
 // Business is created and its plan is generated.
@@ -11,7 +11,7 @@ export interface DefaultStep {
   description: string
   category: string
   guidance: string
-  aiTips: string
+  tips: string
   checklist: string[]
   resources: string[]
   estimatedDays: number
@@ -27,7 +27,7 @@ export const DEFAULT_BUSINESS_STEPS: DefaultStep[] = [
     category: 'research',
     guidance:
       'Before investing time and money, validate that your business idea solves a real problem. Start by defining your Ideal Customer Profile (ICP), then conduct interviews and surveys to test your assumptions. Use competitive analysis to understand the landscape and identify gaps you can exploit. Remember: data beats intuition at this stage.',
-    aiTips:
+    tips:
       'Start with "mom test" interviews — ask about past behaviour, not future promises. Use the Jobs-to-be-Done framework to uncover the real reasons customers "hire" a product. Aim for at least 20 conversations before drawing conclusions; pattern-matching across interviews is where the real insights emerge.',
     checklist: [
       'Define your target customer persona (demographics, psychographics, pain points)',
@@ -55,7 +55,7 @@ export const DEFAULT_BUSINESS_STEPS: DefaultStep[] = [
     category: 'strategy',
     guidance:
       'Your value proposition is the single clearest statement of why a customer should choose you over every alternative — including doing nothing. Use frameworks like the Value Proposition Canvas to map customer pains, gains, and jobs to your product features. Positioning defines the context in which your value prop is understood; choose a market frame of reference where you can win.',
-    aiTips:
+    tips:
       'Write your value proposition in 10 words or fewer. If you can\'t, it\'s not clear enough. Avoid generic claims like "faster" or "easier" — be specific ("10× faster" or "saves 5 hrs/week"). Test multiple positioning statements with real prospects and measure which one drives the highest intent signal.',
     checklist: [
       'Complete a Value Proposition Canvas (customer profile + value map)',
@@ -83,7 +83,7 @@ export const DEFAULT_BUSINESS_STEPS: DefaultStep[] = [
     category: 'strategy',
     guidance:
       'A business model describes how your company creates, delivers, and captures value. Use the Business Model Canvas to map all nine building blocks — from customer segments and channels to cost structure and revenue streams. Test different revenue models (subscription, freemium, marketplace, etc.) against your market and pricing sensitivity. The best model aligns customer willingness-to-pay with your cost economics.',
-    aiTips:
+    tips:
       'Match your revenue model to your value metric — charge for the unit of value the customer receives. Subscription works for ongoing pain; one-time works for resolved pain. Always model LTV:CAC at 3:1 or better before committing to a model. Consider a "land and expand" motion if your product has natural virality or network effects.',
     checklist: [
       'Fill out a full Business Model Canvas',
@@ -111,7 +111,7 @@ export const DEFAULT_BUSINESS_STEPS: DefaultStep[] = [
     category: 'financial',
     guidance:
       'Financial planning turns strategy into numbers. Start with your burn rate and runway — how long can you survive before revenue or funding kicks in? Build a 12-to-36-month projection covering revenue, expenses, and cash flow. Create three scenarios: conservative, moderate, and aggressive. Include unit economics, break-even analysis, and key financial ratios that investors and advisors will scrutinise.',
-    aiTips:
+    tips:
       'Always know your monthly burn rate and runway in months — this is your financial heartbeat. Build projections from the bottom up (per-unit economics) not just top down (% of market). Add a 20-30% buffer to expenses and a 20-30% haircut to revenue assumptions — optimism bias is real and expensive.',
     checklist: [
       'Calculate current monthly burn rate and cash runway',
@@ -139,7 +139,7 @@ export const DEFAULT_BUSINESS_STEPS: DefaultStep[] = [
     category: 'legal',
     guidance:
       'Choose the right legal entity (LLC, C-Corp, etc.) for your goals — especially if you plan to raise venture capital. Protect your intellectual property early: file trademarks, secure domains, and use NDAs and IP assignment agreements. Understand the regulations specific to your industry (data privacy, financial licences, healthcare compliance). Invest in proper contracts with co-founders, employees, and vendors to avoid messy disputes later.',
-    aiTips:
+    tips:
       'If you plan to raise VC funding, incorporate as a Delaware C-Corp from day one — re-structuring later is costly. Use a SAFE (Simple Agreement for Future Equity) for early fundraising instead of convertible notes. File a provisional patent if you have novel technology — it buys you 12 months of "patent pending" protection for minimal cost.',
     checklist: [
       'Choose and register your legal entity (LLC, C-Corp, etc.)',
@@ -167,7 +167,7 @@ export const DEFAULT_BUSINESS_STEPS: DefaultStep[] = [
     category: 'product',
     guidance:
       "Your MVP should be the smallest product that tests your riskiest assumption. Resist the urge to build more — every feature adds cost and delays learning. Use rapid prototyping tools and no-code platforms to get something in users' hands within weeks, not months. Implement instrumentation (analytics, event tracking) from day one so every user interaction generates data. Adopt an iterative build-measure-learn cycle.",
-    aiTips:
+    tips:
       'Define your "one metric that matters" (OMTM) for the MVP — it focuses the entire team. Use a fake-door test or concierge MVP before writing production code. Instrument everything: you can\'t improve what you don\'t measure. Set a time-box (2-6 weeks) for the MVP — scope cuts are easier when the deadline is real.',
     checklist: [
       'Define the core hypothesis your MVP will test',
@@ -195,7 +195,7 @@ export const DEFAULT_BUSINESS_STEPS: DefaultStep[] = [
     category: 'marketing',
     guidance:
       "Start with one primary acquisition channel and master it before diversifying. Whether it's content marketing, outbound sales, paid ads, or community building — depth beats breadth early on. Map your full customer journey from awareness to advocacy and instrument every step. Build a growth model that ties channel inputs (spend, effort) to outputs (signups, revenue) so you can forecast and optimise.",
-    aiTips:
+    tips:
       'Choose your first channel based on where your ICP already spends time and attention. Content compounds; paid decays — invest in SEO and thought leadership early even if results lag. Build a "growth experiment" backlog and run 2-3 tests per week. Track CAC by channel and double down on the winner before adding new channels.',
     checklist: [
       'Select your primary acquisition channel and justify the choice',
@@ -223,7 +223,7 @@ export const DEFAULT_BUSINESS_STEPS: DefaultStep[] = [
     category: 'operations',
     guidance:
       "Operational excellence frees your team to focus on product and growth rather than firefighting. Choose your core tool stack (project management, CRM, communication, finance) and enforce adoption. Document key processes as checklists or playbooks so they don't live in anyone's head. Build automation for repetitive tasks early — every hour saved compounds. Plan for reliability: backup strategies, incident response, and SLA commitments if applicable.",
-    aiTips:
+    tips:
       'Adopt a \'single source of truth\' for each data type — one CRM, one project tracker, one finance tool. Automate before hiring — if a process can be handled by Zapier, Make, or a script, don\'t create a headcount for it. Create an \'ops playbook\' that a new hire could follow on day one without tribal knowledge.',
     checklist: [
       'Select and deploy core tool stack (PM, CRM, comms, finance, CI/CD)',
@@ -251,7 +251,7 @@ export const DEFAULT_BUSINESS_STEPS: DefaultStep[] = [
     category: 'team',
     guidance:
       'Your first 5-10 hires have an outsized impact on culture and capability. Define the roles that unblock your biggest bottlenecks first — usually product, engineering, and go-to-market. Write detailed role descriptions with clear success metrics. Build a hiring process that evaluates for skill, cultural alignment, and growth potential. Create an onboarding experience that gets new hires productive in their first week.',
-    aiTips:
+    tips:
       'Hire generalists for the first 10 roles; specialists become valuable at 20+ employees. Use structured interviews with a consistent rubric — unstructured interviews are poor predictors. Offer equity, not just salary — early team members are co-builders, not just employees. Create a "culture code" document and reference it in every hiring decision.',
     checklist: [
       'Define the next 3 critical hires with role descriptions and success metrics',
@@ -279,7 +279,7 @@ export const DEFAULT_BUSINESS_STEPS: DefaultStep[] = [
     category: 'strategy',
     guidance:
       "A launch is not a single event — it's a sequence of coordinated activities across product, marketing, sales, and operations. Start with a soft launch to a controlled group, iron out critical issues, then expand. Define your launch metrics and set targets. After launch, shift focus to the growth flywheel: acquire → activate → retain → refer → revenue. Build dashboards that give you real-time visibility into every stage of the funnel.",
-    aiTips:
+    tips:
       'Launch is day one, not the finish line — the real work begins after. Use a "launch ladder": private beta → waitlist → public launch → expansion. Set up daily standups and weekly metric reviews for the first 30 days post-launch. Capture every piece of user feedback — your earliest users are your best product advisors.',
     checklist: [
       'Define launch goals and key metrics (signups, activation, revenue, NPS)',

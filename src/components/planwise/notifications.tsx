@@ -6,8 +6,7 @@ import { useAppStore, type Notification } from "@/lib/store"
 import { NOTIFICATION_TYPES } from "@/lib/constants"
 import { markNotificationRead, markAllNotificationsRead, dismissNotification, generateNotifications, fetchNotifications } from "@/lib/api"
 import {
-  Bell, Eye, X, CheckCheck, Sparkles, Loader2, Filter, Clock
-} from "lucide-react"
+  Bell, Eye, X, CheckCheck, Loader2, Filter, Clock, Lightbulb } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -75,7 +74,7 @@ export function NotificationsView() {
     warning: { border: "border-amber-200 dark:border-amber-800", bg: "bg-amber-50 dark:bg-amber-950/30" },
     success: { border: "border-emerald-200 dark:border-emerald-800", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
     urgent: { border: "border-red-200 dark:border-red-800", bg: "bg-red-50 dark:bg-red-950/30" },
-    ai_suggestion: { border: "border-violet-200 dark:border-violet-800", bg: "bg-violet-50 dark:bg-violet-950/30" },
+    advisor_tip: { border: "border-violet-200 dark:border-violet-800", bg: "bg-violet-50 dark:bg-violet-950/30" },
     step_reminder: { border: "border-orange-200 dark:border-orange-800", bg: "bg-orange-50 dark:bg-orange-950/30" },
     milestone: { border: "border-teal-200 dark:border-teal-800", bg: "bg-teal-50 dark:bg-teal-950/30" },
   }
@@ -93,7 +92,7 @@ export function NotificationsView() {
             <CheckCheck className="w-4 h-4 mr-1" />Mark All Read
           </Button>
           <Button size="sm" onClick={handleGenerate} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 shadow-md">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Sparkles className="w-4 h-4 mr-1" />}Generate AI Alerts
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Lightbulb className="w-4 h-4 mr-1" />}Generate Alerts
           </Button>
         </div>
       </div>
@@ -124,7 +123,7 @@ export function NotificationsView() {
           return (
             <motion.div key={n.id} variants={fadeIn}>
               <Card className={cn("border shadow-sm transition-all hover:shadow-md overflow-hidden", !n.read ? colors.border : "border-border", !n.read ? colors.bg : "bg-card")}>
-                <div className={cn("h-1", typeInfo?.bg?.replace("bg-", "bg-") || "bg-sky-500")} style={{ backgroundColor: n.type === "info" ? "#0ea5e9" : n.type === "warning" ? "#f59e0b" : n.type === "success" ? "#10b981" : n.type === "urgent" ? "#ef4444" : n.type === "ai_suggestion" ? "#8b5cf6" : n.type === "step_reminder" ? "#f97316" : "#14b8a6" }} />
+                <div className={cn("h-1", typeInfo?.bg?.replace("bg-", "bg-") || "bg-sky-500")} style={{ backgroundColor: n.type === "info" ? "#0ea5e9" : n.type === "warning" ? "#f59e0b" : n.type === "success" ? "#10b981" : n.type === "urgent" ? "#ef4444" : n.type === "advisor_tip" ? "#8b5cf6" : n.type === "step_reminder" ? "#f97316" : "#14b8a6" }} />
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", typeInfo?.bg || "bg-sky-100")}>

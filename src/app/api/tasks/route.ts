@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
       status,
       dueDate,
       reminderAt,
-      aiGenerated,
-      aiSuggestion,
+      systemGenerated,
+      suggestion,
     } = body;
 
     if (!title) {
@@ -105,8 +105,8 @@ export async function POST(request: NextRequest) {
         status: status || 'pending',
         dueDate: dueDate ? new Date(dueDate) : null,
         reminderAt: reminderAt ? new Date(reminderAt) : null,
-        aiGenerated: aiGenerated || false,
-        aiSuggestion: aiSuggestion || '',
+        systemGenerated: systemGenerated || false,
+        suggestion: suggestion || '',
       },
       include: {
         business: { select: { id: true, name: true } },

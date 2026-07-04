@@ -56,7 +56,7 @@ Step: ${step.title} (Step ${step.stepNumber})
 Description: ${step.description}
 Category: ${step.category}
 Guidance: ${step.guidance}
-AI Tips: ${step.aiTips}
+Expert Tips: ${step.tips}
 Checklist: ${step.checklist}
     `.trim();
 
@@ -70,7 +70,7 @@ Checklist: ${step.checklist}
       messages: [
         {
           role: 'assistant',
-          content: `You are PlanWise AI, an elite business planning expert. Generate 3-5 highly actionable, specific tasks for the given business plan step. 
+          content: `You are Tashyeed, an elite business planning expert. Generate 3-5 highly actionable, specific tasks for the given business plan step. 
 
 Each task should be:
 - Specific and measurable (not vague)
@@ -84,7 +84,7 @@ Return ONLY a JSON object with a "tasks" array. Each task must have:
   "description": string (1-2 sentences explaining what to do and why),
   "priority": string ("urgent", "high", "medium", or "low"),
   "estimatedMinutes": number (estimated time to complete in minutes),
-  "aiSuggestion": string (a specific tip or resource for completing this task)
+  "suggestion": string (a specific tip or resource for completing this task)
 }
 
 Do NOT duplicate or overlap with existing tasks. Be creative and specific to this business's context. Return ONLY the JSON object.`,

@@ -75,7 +75,7 @@ ${business.tasks.map((t) => `- [${t.priority}] ${t.title} (${t.status})`).join('
       messages: [
         {
           role: 'assistant',
-          content: `You are PlanWise AI, the world's most elite business analyst and strategist. You combine McKinsey-level analytical rigor with Y Combinator's startup pragmatism and a seasoned venture capitalist's pattern recognition.
+          content: `You are Tashyeed, the world's most elite business analyst and strategist. You combine McKinsey-level analytical rigor with Y Combinator's startup pragmatism and a seasoned venture capitalist's pattern recognition.
 
 Perform a comprehensive analysis of the business described below. Be brutally honest but constructive. Identify both strengths to leverage and weaknesses to address.
 

@@ -84,7 +84,7 @@ Missed Milestones (${missedMilestones.length}): ${missedMilestones.map((m) => `"
       messages: [
         {
           role: 'assistant',
-          content: `You are PlanWise AI's smart notification engine. Generate helpful, contextual notifications for a business owner based on their current situation.
+          content: `You are Tashyeed's smart notification engine. Generate helpful, contextual notifications for a business owner based on their current situation.
 
 Create 2-5 notifications based on the data below. Each notification should be:
 - Actionable and specific (not generic)
@@ -94,7 +94,7 @@ Create 2-5 notifications based on the data below. Each notification should be:
 
 Return ONLY a JSON object with a "notifications" array. Each notification must have:
 {
-  "type": string (one of: "info", "warning", "success", "urgent", "ai_suggestion", "step_reminder", "milestone"),
+  "type": string (one of: "info", "warning", "success", "urgent", "advisor_tip", "step_reminder", "milestone"),
   "title": string (short, attention-grabbing title),
   "message": string (2-3 sentence detailed message with specific action to take),
   "actionUrl": string (suggested URL path, e.g., "/dashboard", "/business/{id}/steps", "/business/{id}/milestones")

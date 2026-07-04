@@ -37,7 +37,6 @@ export default function TashyeedApp() {
   const [celebrating, setCelebrating] = useState(false)
   const [newBizOpen, setNewBizOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin")
   const { theme, setTheme } = useTheme()
 
   // Initialize on mount
@@ -53,7 +52,7 @@ export default function TashyeedApp() {
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.altKey) {
+      if (e.altKey && isAuthenticated) {
         const views = ['dashboard', 'planner', 'tasks', 'financials', 'milestones', 'analysis', 'notifications', 'settings'] as const
         const num = parseInt(e.key)
         if (num >= 1 && num <= 8) {
@@ -72,24 +71,26 @@ export default function TashyeedApp() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [setActiveView, chatOpen, setChatOpen, theme, setTheme])
+  }, [setActiveView, chatOpen, setChatOpen, theme, setTheme, isAuthenticated])
 
   // Auth handlers
   const handleSignIn = useCallback(() => {
-    setAuthMode("signin")
     setAuthOpen(true)
   }, [])
 
   const handleSignUp = useCallback(() => {
-    setAuthMode("signup")
     setAuthOpen(true)
   }, [])
 
-  const handleAuthSuccess = useCallback(async (data: { user: any; token: string }) => {
-    setAuth(data.token, data.user)
+  const handleAuthSuccess = useCallback(async (user: { id: string; name: string; email: string }, token: string) => {
+    setAuth(token, { ...user, avatar: '', company: '', role: 'CEO', onboarded: false })
     setAuthOpen(false)
     // Initialize app data after auth
-    await initialize()
+    try {
+      await initialize()
+    } catch (e) {
+      console.error('Failed to initialize after auth:', e)
+    }
   }, [setAuth, initialize])
 
   const handleSignOut = useCallback(async () => {
@@ -114,7 +115,6 @@ export default function TashyeedApp() {
           open={authOpen}
           onOpenChange={setAuthOpen}
           onSuccess={handleAuthSuccess}
-          defaultTab={authMode}
         />
       </TooltipProvider>
     )

@@ -6,7 +6,7 @@ import { useAppStore } from "@/lib/store"
 import { APP_CONFIG, INDUSTRIES, STAGES, REVENUE_MODELS, TARGET_MARKETS } from "@/lib/constants"
 import { createBusiness } from "@/lib/api"
 import {
-  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, Settings, ChevronRight, ChevronLeft, Plus, Sparkles, Brain, Building2, Menu, Gauge, CheckCircle2, Loader2, Zap, Rocket, TrendingUp, Users, BarChart3
+  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, Settings, ChevronRight, ChevronLeft, Plus, Building2, Menu, CheckCircle2, Loader2, Zap, Rocket, MessageSquare, BarChart3
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -47,7 +47,7 @@ function NewBusinessDialog({ open, onOpenChange }: { open: boolean; onOpenChange
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Rocket className="w-5 h-5 text-emerald-600" />Add New Business</DialogTitle>
-          <DialogDescription>Set up a new business plan with AI-powered guidance</DialogDescription>
+          <DialogDescription>Set up a new business plan with structured guidance</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 mt-2">
           <div><label className="text-sm font-medium mb-1 block">Business Name *</label><Input value={bizName} onChange={e => setBizName(e.target.value)} placeholder="e.g. TechFlow SaaS" className="focus:ring-emerald-500" /></div>
@@ -85,12 +85,12 @@ function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navI
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">
-            <Brain className="w-6 h-6 text-white" />
+            <Building2 className="w-6 h-6 text-white" />
           </div>
           {sidebarOpen !== false && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <h1 className="font-bold text-lg bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">{APP_CONFIG.name}</h1>
-              <p className="text-[10px] text-muted-foreground -mt-0.5">AI Business Planning</p>
+              <p className="text-[10px] text-muted-foreground -mt-0.5">Business Planning</p>
             </motion.div>
           )}
         </div>
@@ -163,11 +163,11 @@ function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navI
         })}
       </nav>
 
-      {/* AI Advisor Button */}
+      {/* Advisor Button */}
       <div className="px-3 pb-3">
         <button onClick={() => useAppStore.getState().setChatOpen(true)} className={cn("w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 pulse-glow")}>
-          <Sparkles className="w-5 h-5 shrink-0" />
-          {sidebarOpen !== false && <span>AI Advisor</span>}
+          <MessageSquare className="w-5 h-5 shrink-0" />
+          {sidebarOpen !== false && <span>Advisor</span>}
         </button>
       </div>
 
@@ -175,11 +175,11 @@ function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navI
       <div className="border-t border-border p-3">
         <div className="flex items-center gap-2.5">
           <Avatar className="w-9 h-9 ring-2 ring-emerald-100 dark:ring-emerald-900">
-            <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xs font-bold">{user?.name?.charAt(0) || "E"}</AvatarFallback>
+            <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xs font-bold">{user?.name?.charAt(0) || "U"}</AvatarFallback>
           </Avatar>
           {sidebarOpen !== false && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate text-foreground">{user?.name || "Entrepreneur"}</p>
+              <p className="text-sm font-medium truncate text-foreground">{user?.name || "User"}</p>
               <p className="text-[10px] text-muted-foreground truncate">{user?.role || "CEO"} {user?.company ? `@ ${user.company}` : ""}</p>
             </div>
           )}
@@ -202,7 +202,7 @@ export function Sidebar({ newBizOpen, setNewBizOpen }: { newBizOpen: boolean; se
     { id: "tasks", label: "Tasks", icon: CheckCircle2, description: "Action items" },
     { id: "financials", label: "Financial Projections", icon: DollarSign, description: "Revenue & expenses" },
     { id: "milestones", label: "Milestones", icon: Flag, description: "Key achievements" },
-    { id: "analysis", label: "AI Analysis", icon: Gauge, description: "SWOT & insights" },
+    { id: "analysis", label: "Business Analysis", icon: BarChart3, description: "SWOT & insights" },
     { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount, description: "Alerts & updates" },
     { id: "settings", label: "Settings", icon: Settings, description: "Preferences" },
   ]

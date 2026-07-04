@@ -4,12 +4,11 @@ import { useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAppStore, type Task } from "@/lib/store"
 import { PRIORITIES, TASK_STATUSES, CATEGORIES } from "@/lib/constants"
-import { createTask, updateTask, deleteTask, chatWithAI } from "@/lib/api"
+import { createTask, updateTask, deleteTask, chatWithAdvisor } from "@/lib/api"
 import {
-  Plus, CheckCircle2, Circle, Clock, Loader2, AlertTriangle, Calendar, Sparkles,
+  Plus, CheckCircle2, Circle, Clock, Loader2, AlertTriangle, Calendar,
   Trash2, Play, Search, ArrowUpDown, TrendingUp, TrendingDown, GripVertical,
-  User, ListChecks, Rocket, Inbox
-} from "lucide-react"
+  User, ListChecks, Rocket, Inbox, Lightbulb } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -132,14 +131,14 @@ function TaskItem({ task, compact = false }: { task: Task; compact?: boolean }) 
             <div className="flex items-center gap-2 flex-wrap">
               <h4 className={cn("font-medium text-sm", task.status === "completed" && "line-through text-muted-foreground")}>{task.title}</h4>
               <Badge className={cn("text-[10px]", priority?.bg, priority?.color)}>{priority?.label}</Badge>
-              {task.aiGenerated && (
+              {task.systemGenerated && (
                 <Badge className="text-[10px] bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
                   <motion.span
                     animate={{ rotate: [0, 15, -15, 0] }}
                     transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                     className="inline-flex"
                   >
-                    <Sparkles className="w-3 h-3 mr-1" />
+                    <Lightbulb className="w-3 h-3 mr-1" />
                   </motion.span>
                   AI
                 </Badge>
@@ -148,17 +147,17 @@ function TaskItem({ task, compact = false }: { task: Task; compact?: boolean }) 
             </div>
             {task.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>}
 
-            {/* AI Suggestion with animated sparkles */}
-            {task.aiSuggestion && (
+            {/* Advisor Tip with animated sparkles */}
+            {task.suggestion && (
               <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 dark:from-violet-950/30 dark:to-purple-950/30 dark:border-violet-800 rounded-md p-2 mt-2 text-xs text-violet-700 dark:text-violet-300">
                 <motion.span
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                   className="inline-block mr-1"
                 >
-                  <Sparkles className="w-3 h-3 inline" />
+                  <Lightbulb className="w-3 h-3 inline" />
                 </motion.span>
-                {task.aiSuggestion}
+                {task.suggestion}
               </div>
             )}
 
@@ -264,7 +263,7 @@ export function TasksView() {
     if (!newTitle) return
     setAiSuggesting(true)
     try {
-      const res = await chatWithAI(
+      const res = await chatWithAdvisor(
         `Generate a detailed task description for: "${newTitle}". Priority: ${newPriority}. Just give me the description text, nothing else.`,
         currentBusiness?.id
       )
@@ -417,7 +416,7 @@ export function TasksView() {
                     disabled={!newTitle || aiSuggesting}
                     className="shrink-0"
                   >
-                    {aiSuggesting ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Sparkles className="w-4 h-4 mr-1.5" />}
+                    {aiSuggesting ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Lightbulb className="w-4 h-4 mr-1.5" />}
                     AI Suggest
                   </Button>
                 </div>

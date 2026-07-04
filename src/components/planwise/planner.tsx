@@ -4,12 +4,11 @@ import { useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAppStore, type PlanStep, type Task } from "@/lib/store"
 import { CATEGORIES, STEP_STATUSES } from "@/lib/constants"
-import { updatePlanStep, generateAITasks } from "@/lib/api"
+import { updatePlanStep, generateSuggestedTasks } from "@/lib/api"
 import {
-  CheckCircle2, Circle, Lock, Clock, ChevronRight, Lightbulb, Sparkles,
+  CheckCircle2, Circle, Lock, Clock, ChevronRight,
   Play, SkipForward, Loader2, Rocket, Search, Target, DollarSign, Shield,
-  Package, Zap, Settings, Users, ListTodo, GripVertical, Trophy
-} from "lucide-react"
+  Package, Zap, Settings, Users, ListTodo, GripVertical, Trophy, Lightbulb } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -134,7 +133,7 @@ function StepTasksSection({ step, businessId }: { step: PlanStep; businessId: st
   const handleGenerateAITasks = async () => {
     setGenerating(true)
     try {
-      await generateAITasks(businessId, step.id)
+      await generateSuggestedTasks(businessId, step.id)
       await refreshTasks()
     } catch (e) { console.error(e) }
     setGenerating(false)
@@ -178,7 +177,7 @@ function StepTasksSection({ step, businessId }: { step: PlanStep; businessId: st
               <span className={cn("text-sm flex-1", task.status === "completed" && "line-through text-muted-foreground")}>
                 {task.title}
               </span>
-              {task.aiGenerated && <Sparkles className="w-3 h-3 text-violet-500" />}
+              {task.systemGenerated && <Lightbulb className="w-3 h-3 text-violet-500" />}
             </div>
           ))}
         </div>
@@ -195,7 +194,7 @@ function StepTasksSection({ step, businessId }: { step: PlanStep; businessId: st
         {generating ? (
           <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Generating...</>
         ) : (
-          <><Sparkles className="w-3.5 h-3.5 mr-1.5" />Generate AI Tasks</>
+          <><Lightbulb className="w-3.5 h-3.5 mr-1.5" />Generate Suggested Tasks</>
         )}
       </Button>
     </div>
@@ -392,16 +391,16 @@ export function Planner({ onCelebrate }: { onCelebrate?: () => void }) {
                                 </div>
                               )}
                               {/* Enhanced AI Tips box with gradient left border */}
-                              {step.aiTips && (
+                              {step.tips && (
                                 <div className="rounded-lg overflow-hidden border border-violet-200 dark:border-violet-800">
                                   <div className="flex items-start gap-2 bg-violet-50 dark:bg-violet-950/30 p-3 border-l-4 border-l-violet-500">
                                     <motion.div
                                       animate={{ scale: [1, 1.15, 1] }}
                                       transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
                                     >
-                                      <Sparkles className="w-4 h-4 text-violet-600 dark:text-violet-400 shrink-0 mt-0.5" />
+                                      <Lightbulb className="w-4 h-4 text-violet-600 dark:text-violet-400 shrink-0 mt-0.5" />
                                     </motion.div>
-                                    <p className="text-sm text-violet-700 dark:text-violet-300">{step.aiTips}</p>
+                                    <p className="text-sm text-violet-700 dark:text-violet-300">{step.tips}</p>
                                   </div>
                                 </div>
                               )}

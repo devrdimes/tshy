@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Brain, CheckCircle2, Circle, Shield, Rocket, Zap, Clock, Flag, AlertTriangle, Users, Info, Sparkles, AlertOctagon, Heart, Target, DollarSign, Settings, Search, Twitter, Github, Linkedin } from "lucide-react"
+import { CheckCircle2, Circle, Shield, Rocket, Zap, Clock, Flag, AlertTriangle, Users, Info, Lightbulb, AlertOctagon, Heart, Target, DollarSign, Settings, Search, Twitter, Github, Linkedin, Building2 } from "lucide-react"
 import { APP_CONFIG } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 
 // ─── ICON MAP ──────────────────────────────────────────────
 export const iconMap: Record<string, React.ElementType> = {
-  Search, Target, DollarSign, Scale: Shield, Package: Rocket, Megaphone: Zap, Settings, Users, Info, AlertTriangle, CheckCircle2, Sparkles, Clock: Clock, Flag, AlertOctagon: AlertTriangle, UserPlus: Users, Landmark: DollarSign, Brain
+  Search, Target, DollarSign, Scale: Shield, Package: Rocket, Megaphone: Zap, Settings, Users, Info, AlertTriangle, CheckCircle2, Lightbulb, Clock: Clock, Flag, AlertOctagon: AlertTriangle, UserPlus: Users, Landmark: DollarSign, Building2
 }
 
 export function getIcon(name: string) {
@@ -270,7 +270,7 @@ export function LoadingScreen() {
             className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full"
           />
 
-          {/* Brain icon with pulse */}
+          {/* Building2 icon with pulse */}
           <motion.div
             animate={{
               scale: [1, 1.1, 1],
@@ -282,7 +282,7 @@ export function LoadingScreen() {
             }}
             className="absolute"
           >
-            <Brain className="w-8 h-8 text-emerald-400" />
+            <Building2 className="w-8 h-8 text-emerald-400" />
           </motion.div>
         </div>
 
@@ -290,7 +290,7 @@ export function LoadingScreen() {
         <h1 className="text-3xl font-bold mb-2 text-gradient">{APP_CONFIG.name}</h1>
 
         {/* Subtitle */}
-        <p className="text-slate-400 text-sm mb-1">Initializing your AI business advisor...</p>
+        <p className="text-slate-400 text-sm mb-1">Initializing your workspace...</p>
 
         {/* Progress dots */}
         <div className="flex justify-center">

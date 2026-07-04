@@ -42,7 +42,7 @@ Monthly Burn Rate: $${business.monthlyBurnRate}
       messages: [
         {
           role: 'assistant',
-          content: `You are PlanWise AI, an elite business planning expert and strategist. You generate comprehensive, actionable business plan steps for entrepreneurs. You must respond ONLY with valid JSON — no markdown, no explanations outside the JSON structure.
+          content: `You are Tashyeed, an elite business planning expert and strategist. You generate comprehensive, actionable business plan steps for entrepreneurs. You must respond ONLY with valid JSON — no markdown, no explanations outside the JSON structure.
 
 Generate exactly 10 business plan steps for the business described below. Each step must be detailed with practical, actionable guidance.
 
@@ -65,7 +65,7 @@ Return a JSON object with a "steps" array. Each step object must have:
   "description": string (2-3 sentences explaining what this step involves),
   "category": string (one of: research, strategy, financial, legal, product, marketing, operations, team),
   "guidance": string (detailed guidance paragraph, 3-5 sentences with specific actions),
-  "aiTips": string (expert AI tip, 2-3 sentences with insider advice),
+  "tips": string (expert AI tip, 2-3 sentences with insider advice),
   "checklist": array of strings (5-7 specific checklist items),
   "resources": array of strings (3-5 recommended resources, tools, or references),
   "estimatedDays": number (realistic estimate based on the business type)
@@ -124,7 +124,7 @@ IMPORTANT: Tailor every step specifically to the business's industry, stage, and
       category: String(step.category || ''),
       status: index === 0 ? 'current' : 'locked',
       guidance: String(step.guidance || ''),
-      aiTips: String(step.aiTips || ''),
+      tips: String(step.tips || ''),
       checklist: JSON.stringify(step.checklist || []),
       resources: JSON.stringify(step.resources || []),
       estimatedDays: Number(step.estimatedDays) || 7,

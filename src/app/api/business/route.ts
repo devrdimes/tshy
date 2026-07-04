@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
         category: 'research',
         description: 'Conduct thorough market research to understand your industry landscape.',
         guidance: 'Identify market size, trends, and growth potential. Research customer demographics and behaviors.',
-        aiTips: 'Use both primary and secondary research methods. Look for underserved niches within your target market.',
+        tips: 'Use both primary and secondary research methods. Look for underserved niches within your target market.',
         checklist: JSON.stringify([
           'Define target market demographics',
           'Analyze market size and growth trends',
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         category: 'strategy',
         description: 'Define your unique value proposition and competitive advantage.',
         guidance: 'Clearly articulate what makes your business different and why customers should choose you.',
-        aiTips: 'Focus on the intersection of what customers need and what competitors fail to deliver. Your value prop should be specific and measurable.',
+        tips: 'Focus on the intersection of what customers need and what competitors fail to deliver. Your value prop should be specific and measurable.',
         checklist: JSON.stringify([
           'Define your unique selling points',
           'Create value proposition canvas',
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
         category: 'strategy',
         description: 'Design a sustainable and scalable business model.',
         guidance: 'Choose and validate your business model, revenue streams, and cost structure.',
-        aiTips: 'Consider multiple revenue streams for resilience. Test your pricing model early with real customer feedback.',
+        tips: 'Consider multiple revenue streams for resilience. Test your pricing model early with real customer feedback.',
         checklist: JSON.stringify([
           'Complete Business Model Canvas',
           'Define revenue streams',
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
         category: 'financial',
         description: 'Create comprehensive financial projections and budgets.',
         guidance: 'Build realistic financial models including revenue forecasts, expense budgets, and cash flow projections.',
-        aiTips: 'Always model three scenarios: conservative, moderate, and optimistic. Focus on cash flow over profit in early stages.',
+        tips: 'Always model three scenarios: conservative, moderate, and optimistic. Focus on cash flow over profit in early stages.',
         checklist: JSON.stringify([
           'Create startup cost breakdown',
           'Build 12-month cash flow projection',
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
         category: 'legal',
         description: 'Establish legal structure and compliance framework.',
         guidance: 'Register your business, protect your IP, and ensure regulatory compliance.',
-        aiTips: 'Choose your legal structure based on liability protection, tax implications, and future fundraising plans.',
+        tips: 'Choose your legal structure based on liability protection, tax implications, and future fundraising plans.',
         checklist: JSON.stringify([
           'Choose business structure (LLC, Corp, etc.)',
           'Register business name',
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
         category: 'product',
         description: 'Build your minimum viable product (MVP) or service prototype.',
         guidance: 'Develop your MVP focusing on core features that solve the primary customer problem.',
-        aiTips: 'Speed to market is critical. Build the smallest thing that delivers value and learn from real usage data.',
+        tips: 'Speed to market is critical. Build the smallest thing that delivers value and learn from real usage data.',
         checklist: JSON.stringify([
           'Define MVP feature set',
           'Create product roadmap',
@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
         category: 'marketing',
         description: 'Develop a comprehensive go-to-market and marketing strategy.',
         guidance: 'Create your brand identity, marketing channels, and customer acquisition strategy.',
-        aiTips: 'Focus on 1-2 channels initially and master them before expanding. Content marketing and community building often provide the best ROI for startups.',
+        tips: 'Focus on 1-2 channels initially and master them before expanding. Content marketing and community building often provide the best ROI for startups.',
         checklist: JSON.stringify([
           'Define brand identity and messaging',
           'Create marketing plan and budget',
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
         category: 'operations',
         description: 'Set up operational infrastructure and processes.',
         guidance: 'Establish day-to-day operations, tools, and workflows to support your business.',
-        aiTips: 'Automate early and often. Invest in tools that scale with you rather than manual processes that break under growth.',
+        tips: 'Automate early and often. Invest in tools that scale with you rather than manual processes that break under growth.',
         checklist: JSON.stringify([
           'Set up project management tools',
           'Create standard operating procedures',
@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
         category: 'team',
         description: 'Recruit and build your founding team.',
         guidance: 'Identify key roles, recruit talent, and establish team culture and processes.',
-        aiTips: 'Hire for attitude and potential over experience. Your first 5 hires define your company culture for the next 50.',
+        tips: 'Hire for attitude and potential over experience. Your first 5 hires define your company culture for the next 50.',
         checklist: JSON.stringify([
           'Identify critical roles to fill',
           'Write job descriptions',
@@ -275,7 +275,7 @@ export async function POST(request: NextRequest) {
         category: 'marketing',
         description: 'Plan and execute your business launch.',
         guidance: 'Orchestrate a strategic launch that maximizes initial traction and customer acquisition.',
-        aiTips: 'A soft launch to a limited audience often beats a big splash. Use early adopters to refine before scaling.',
+        tips: 'A soft launch to a limited audience often beats a big splash. Use early adopters to refine before scaling.',
         checklist: JSON.stringify([
           'Define launch goals and metrics',
           'Prepare launch materials and assets',

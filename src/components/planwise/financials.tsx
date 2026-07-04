@@ -5,8 +5,7 @@ import { motion } from "framer-motion"
 import { useAppStore } from "@/lib/store"
 import { generateProjections } from "@/lib/api"
 import {
-  DollarSign, TrendingUp, BarChart3, Clock, Info, Sparkles, Loader2, ArrowUpRight, ArrowDownRight, Target
-} from "lucide-react"
+  DollarSign, TrendingUp, BarChart3, Clock, Info, Loader2, ArrowUpRight, ArrowDownRight, Target, Lightbulb } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -116,7 +115,7 @@ export function Financials() {
                 <Bar dataKey="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          ) : <EmptyState icon={DollarSign} title="No financial data yet" description="Generate AI projections to see your financial outlook" />}
+          ) : <EmptyState icon={DollarSign} title="No financial data yet" description="Generate projections to see your financial outlook" />}
         </CardContent>
       </Card>
 
@@ -158,7 +157,7 @@ export function Financials() {
       {/* Generate Button */}
       <div className="flex justify-center">
         <Button onClick={handleGenerate} disabled={generating} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 px-8">
-          {generating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Generating AI Projections...</> : <><Sparkles className="w-4 h-4 mr-2" />Generate AI Projections</>}
+          {generating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Generating Projections...</> : <><Lightbulb className="w-4 h-4 mr-2" />Generate Projections</>}
         </Button>
       </div>
     </motion.div>

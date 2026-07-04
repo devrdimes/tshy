@@ -1,18 +1,21 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 // POST /api/init — Initialize demo data for the app
 export async function POST() {
   try {
-    // Create default user
+    // Create default user (only if no users exist)
     let user = await db.user.findFirst();
     if (!user) {
+      const hashedPassword = await bcrypt.hash('demo1234', 12);
       user = await db.user.create({
         data: {
           name: 'Entrepreneur',
-          email: 'user@planwise.ai',
+          email: 'demo@tashyeed.com',
+          password: hashedPassword,
           role: 'CEO',
-          company: 'PlanWise Demo',
+          company: 'Tashyeed Demo',
           avatar: '',
           onboarded: true,
         },
@@ -36,7 +39,7 @@ export async function POST() {
       data: {
         userId: user.id,
         name: 'TechFlow SaaS',
-        description: 'AI-powered project management platform for remote teams. Combines intelligent task prioritization with real-time collaboration to help distributed teams work 10x more efficiently.',
+        description: 'Project management platform for remote teams. Combines intelligent task prioritization with real-time collaboration to help distributed teams work more efficiently.',
         industry: 'SaaS / Technology',
         stage: 'planning',
         targetMarket: 'Remote-first companies with 10-500 employees',
@@ -58,9 +61,9 @@ export async function POST() {
         category: 'research',
         description: 'Analyze the project management SaaS market, identify customer pain points, and validate market opportunity.',
         status: 'completed',
-        guidance: 'Research the $8B+ project management software market. Focus on pain points of remote teams: timezone coordination, async communication gaps, and task visibility. Analyze competitors like Asana, Monday.com, and Notion.',
-        aiTips: 'The SaaS PM market is growing 10%+ annually. Remote work tools saw explosive growth post-2020. Focus on the underserved mid-market segment (50-200 employees) where teams need more than basic tools but less than enterprise complexity.',
-        checklist: JSON.stringify(['✅ Analyze market size and growth trends', '✅ Map competitor landscape', '✅ Identify customer pain points', '✅ Validate market opportunity with potential customers', '✅ Research industry regulations']),
+        guidance: 'Research the project management software market. Focus on pain points of remote teams: timezone coordination, async communication gaps, and task visibility. Analyze competitors like Asana, Monday.com, and Notion.',
+        tips: 'The SaaS PM market is growing 10%+ annually. Remote work tools saw explosive growth post-2020. Focus on the underserved mid-market segment (50-200 employees) where teams need more than basic tools but less than enterprise complexity.',
+        checklist: JSON.stringify(['Analyze market size and growth trends', 'Map competitor landscape', 'Identify customer pain points', 'Validate market opportunity with potential customers', 'Research industry regulations']),
         resources: JSON.stringify(['Gartner PM software reports', 'Competitor pricing pages', 'Remote work survey data']),
         estimatedDays: 7,
         startedAt: new Date('2025-01-15'),
@@ -70,11 +73,11 @@ export async function POST() {
         stepNumber: 2,
         title: 'Value Proposition',
         category: 'strategy',
-        description: 'Define your unique value proposition: AI-powered task prioritization that adapts to team work patterns.',
+        description: 'Define your unique value proposition: intelligent task prioritization that adapts to team work patterns.',
         status: 'completed',
-        guidance: 'Your differentiator is AI that learns from team behavior to automatically prioritize tasks and suggest optimal work schedules across timezones. This goes beyond simple task lists.',
-        aiTips: 'Your strongest value prop is the intersection of AI + remote work. Don\'t try to be "better Asana" — be the tool that makes remote work feel like co-located work through intelligent orchestration.',
-        checklist: JSON.stringify(['✅ Define unique selling points', '✅ Create value proposition canvas', '✅ Validate with 10+ potential customers', '✅ Document competitive advantages', '✅ Craft elevator pitch']),
+        guidance: 'Your differentiator is technology that learns from team behavior to automatically prioritize tasks and suggest optimal work schedules across timezones. This goes beyond simple task lists.',
+        tips: 'Your strongest value prop is the intersection of smart tools + remote work. Don\'t try to be "better Asana" — be the tool that makes remote work feel like co-located work through intelligent orchestration.',
+        checklist: JSON.stringify(['Define unique selling points', 'Create value proposition canvas', 'Validate with 10+ potential customers', 'Document competitive advantages', 'Craft elevator pitch']),
         resources: JSON.stringify(['Strategyzer Canvas', 'Customer interview scripts', 'Competitive positioning matrix']),
         estimatedDays: 5,
         startedAt: new Date('2025-01-23'),
@@ -86,9 +89,9 @@ export async function POST() {
         category: 'strategy',
         description: 'Finalize your freemium SaaS business model with tiered pricing and expansion revenue strategy.',
         status: 'in_progress',
-        guidance: 'Design a freemium model that drives viral adoption within teams. Free tier supports up to 5 users; Pro at $15/user/mo adds AI features; Business at $49/user/mo adds analytics and integrations. Target $1M ARR within 18 months.',
-        aiTips: 'The key SaaS metric to optimize is net revenue retention. If existing customers expand faster than they churn, growth compounds. Design pricing tiers that naturally drive upgrades as teams grow.',
-        checklist: JSON.stringify(['✅ Complete Business Model Canvas', 'Define revenue streams and pricing tiers', 'Map cost structure', '⬜ Validate unit economics', '⬜ Identify key partnerships']),
+        guidance: 'Design a freemium model that drives viral adoption within teams. Free tier supports up to 5 users; Pro at $15/user/mo adds premium features; Business at $49/user/mo adds analytics and integrations. Target sustainable growth within 18 months.',
+        tips: 'The key SaaS metric to optimize is net revenue retention. If existing customers expand faster than they churn, growth compounds. Design pricing tiers that naturally drive upgrades as teams grow.',
+        checklist: JSON.stringify(['Complete Business Model Canvas', 'Define revenue streams and pricing tiers', 'Map cost structure', 'Validate unit economics', 'Identify key partnerships']),
         resources: JSON.stringify(['SaaS pricing benchmarks', 'Business Model Canvas', 'Unit economics calculator']),
         estimatedDays: 7,
         startedAt: new Date('2025-01-29'),
@@ -100,7 +103,7 @@ export async function POST() {
         description: 'Create detailed financial projections including runway calculation and funding strategy.',
         status: 'locked',
         guidance: 'With $150K initial capital and $12K monthly burn, you have approximately 12 months of runway. Plan for a seed round of $500K-1M at month 8. Build conservative, moderate, and aggressive scenarios.',
-        aiTips: 'Plan your fundraise 6 months before you need the money. Most first-time founders underestimate how long fundraising takes. Target 18+ months of runway post-raise.',
+        tips: 'Plan your fundraise 6 months before you need the money. Most first-time founders underestimate how long fundraising takes. Target 18+ months of runway post-raise.',
         checklist: JSON.stringify(['Create startup cost breakdown', 'Build 18-month cash flow projection', 'Calculate break-even point', 'Determine funding requirements', 'Set financial KPIs and tracking']),
         resources: JSON.stringify(['Financial model templates', 'SaaS metrics dashboard', 'Runway calculator']),
         estimatedDays: 10,
@@ -111,22 +114,22 @@ export async function POST() {
         category: 'legal',
         description: 'Establish legal structure, IP protection, and compliance framework for your SaaS business.',
         status: 'locked',
-        guidance: 'Form a Delaware C-Corp (standard for venture-backed startups). Protect your AI algorithms and brand. Implement data privacy measures (GDPR/CCPA compliance is critical for SaaS).',
-        aiTips: 'Delaware C-Corp is the gold standard if you plan to raise VC funding. Get your IP assignment agreements in place before building — this becomes a deal-breaking issue during due diligence.',
-        checklist: JSON.stringify(['Choose business structure (Delaware C-Corp)', 'Register business name and trademarks', 'Draft founder agreements and IP assignment', 'Set up data privacy compliance (GDPR/CCPA)', 'Open business bank account']),
-        resources: JSON.stringify(['Clerky or Stripe Atlas for incorporation', 'SBA.gov resources', 'Data privacy compliance guides']),
+        guidance: 'Form a legal entity appropriate for your situation. Protect your intellectual property and brand. Implement data privacy measures (GDPR/CCPA compliance is critical for SaaS).',
+        tips: 'Choose a business structure that aligns with your funding plans. Get IP assignment agreements in place before building — this becomes a critical issue during due diligence.',
+        checklist: JSON.stringify(['Choose business structure', 'Register business name and trademarks', 'Draft founder agreements and IP assignment', 'Set up data privacy compliance (GDPR/CCPA)', 'Open business bank account']),
+        resources: JSON.stringify(['Stripe Atlas for incorporation', 'SBA.gov resources', 'Data privacy compliance guides']),
         estimatedDays: 7,
       },
       {
         stepNumber: 6,
         title: 'Product Development',
         category: 'product',
-        description: 'Build your AI-powered MVP focusing on core task prioritization and team coordination features.',
+        description: 'Build your MVP focusing on core task prioritization and team coordination features.',
         status: 'locked',
-        guidance: 'Start with the core AI task prioritization engine. Build integrations with Slack and GitHub first. The MVP should demonstrate that AI can meaningfully improve team productivity within 2 weeks of use.',
-        aiTips: 'Resist the urge to build every feature. Your MVP needs to prove ONE thing: that AI prioritization makes remote teams more productive. If you can prove that, everything else follows.',
+        guidance: 'Start with the core task prioritization engine. Build integrations with Slack and GitHub first. The MVP should demonstrate meaningful improvement in team productivity within 2 weeks of use.',
+        tips: 'Resist the urge to build every feature. Your MVP needs to prove ONE thing: that your approach makes remote teams more productive. If you can prove that, everything else follows.',
         checklist: JSON.stringify(['Define MVP feature set', 'Create product roadmap', 'Set up development infrastructure', 'Build and test MVP', 'Gather initial user feedback']),
-        resources: JSON.stringify(['Agile development guides', 'Product management tools', 'AI/ML development frameworks']),
+        resources: JSON.stringify(['Agile development guides', 'Product management tools', 'Development frameworks']),
         estimatedDays: 21,
       },
       {
@@ -135,8 +138,8 @@ export async function POST() {
         category: 'marketing',
         description: 'Develop go-to-market strategy focused on product-led growth and community building.',
         status: 'locked',
-        guidance: 'Leverage a product-led growth (PLG) strategy. Create content about remote work best practices. Build in public on Twitter/LinkedIn. Launch on Product Hunt. Target remote work communities and Slack groups.',
-        aiTips: 'For SaaS PLG, your free tier IS your marketing. Make the free experience so good that teams naturally invite colleagues. Track viral coefficient religiously.',
+        guidance: 'Leverage a product-led growth (PLG) strategy. Create content about remote work best practices. Build in public. Launch on Product Hunt. Target remote work communities and Slack groups.',
+        tips: 'For SaaS PLG, your free tier IS your marketing. Make the free experience so good that teams naturally invite colleagues. Track viral coefficient religiously.',
         checklist: JSON.stringify(['Define brand identity and messaging', 'Create marketing plan and budget', 'Set up content marketing engine', 'Build launch campaign strategy', 'Establish community presence']),
         resources: JSON.stringify(['Product-led growth playbook', 'Content marketing frameworks', 'Product Hunt launch guide']),
         estimatedDays: 10,
@@ -148,7 +151,7 @@ export async function POST() {
         description: 'Set up operational infrastructure, tools, and scalable processes.',
         status: 'locked',
         guidance: 'Implement cloud-native infrastructure from day one. Use AWS/GCP with auto-scaling. Set up CI/CD pipelines, monitoring, and incident response. Choose tools that scale with zero marginal cost per user.',
-        aiTips: 'Cloud costs can spiral quickly in SaaS. Implement cost monitoring from day one. Use reserved instances for predictable workloads and spot instances for batch processing.',
+        tips: 'Cloud costs can spiral quickly in SaaS. Implement cost monitoring from day one. Use reserved instances for predictable workloads and spot instances for batch processing.',
         checklist: JSON.stringify(['Set up cloud infrastructure', 'Implement CI/CD pipelines', 'Configure monitoring and alerting', 'Establish incident response procedures', 'Set up customer support system']),
         resources: JSON.stringify(['AWS/Azure startup programs', 'DevOps best practices', 'SaaS operations playbook']),
         estimatedDays: 7,
@@ -157,10 +160,10 @@ export async function POST() {
         stepNumber: 9,
         title: 'Team Building',
         category: 'team',
-        description: 'Recruit your founding team with emphasis on AI/ML and SaaS experience.',
+        description: 'Recruit your founding team with emphasis on relevant experience.',
         status: 'locked',
-        guidance: 'First hires: Senior ML Engineer (AI core), Full-stack Developer (product), and Growth Marketer (PLG). Consider remote-first from the start to access global talent and validate your own product.',
-        aiTips: 'Hire people who are excited about remote work — they\'ll be your best product advocates. Your first engineer should be generalist enough to build anything but specialized enough in AI to make your core feature excellent.',
+        guidance: 'First hires: Senior Engineer (core product), Full-stack Developer (features), and Growth Marketer (PLG). Consider remote-first from the start to access global talent and validate your own product.',
+        tips: 'Hire people who are excited about remote work — they\'ll be your best product advocates. Your first engineer should be generalist enough to build anything but specialized enough to make your core feature excellent.',
         checklist: JSON.stringify(['Define critical roles and job descriptions', 'Set up hiring process and assessment criteria', 'Source and interview candidates', 'Make offers and onboard new hires', 'Establish team culture and rituals']),
         resources: JSON.stringify(['Remote hiring platforms', 'Technical interview frameworks', 'Onboarding templates']),
         estimatedDays: 14,
@@ -171,8 +174,8 @@ export async function POST() {
         category: 'marketing',
         description: 'Plan and execute a strategic launch that drives initial adoption and validates product-market fit.',
         status: 'locked',
-        guidance: 'Plan a phased launch: private beta (50 users), public beta (500 users), then general availability. Use the beta period to validate AI effectiveness metrics and refine onboarding. Target 1000 signups in the first month post-launch.',
-        aiTips: 'The best SaaS launches aren\'t big bang events — they\'re gradual ramps. Start with users who have the pain you solve most acutely. Their feedback and success stories will fuel your broader launch.',
+        guidance: 'Plan a phased launch: private beta (50 users), public beta (500 users), then general availability. Use the beta period to validate effectiveness metrics and refine onboarding. Target 1000 signups in the first month post-launch.',
+        tips: 'The best SaaS launches aren\'t big bang events — they\'re gradual ramps. Start with users who have the pain you solve most acutely. Their feedback and success stories will fuel your broader launch.',
         checklist: JSON.stringify(['Define launch goals and success metrics', 'Build launch materials and demos', 'Execute private beta program', 'Plan Product Hunt and media launch', 'Monitor metrics and iterate rapidly']),
         resources: JSON.stringify(['Launch checklist templates', 'Beta management tools', 'Analytics and tracking setup']),
         estimatedDays: 7,
@@ -191,14 +194,14 @@ export async function POST() {
       {
         userId: user.id,
         businessId: business.id,
-        planStepId: null, // Will be linked after creation
+        planStepId: null,
         title: 'Validate pricing tiers with 5 target customers',
         description: 'Schedule calls with potential customers to test willingness to pay at different price points. Focus on the $15-49/user/mo range.',
         priority: 'high',
         status: 'pending',
         dueDate: new Date('2025-03-15'),
-        aiGenerated: true,
-        aiSuggestion: 'Use Van Westendorp pricing method to find the optimal price range. Ask about current tool spend as a benchmark.',
+        systemGenerated: true,
+        suggestion: 'Use Van Westendorp pricing method to find the optimal price range. Ask about current tool spend as a benchmark.',
       },
       {
         userId: user.id,
@@ -209,20 +212,20 @@ export async function POST() {
         priority: 'medium',
         status: 'pending',
         dueDate: new Date('2025-03-20'),
-        aiGenerated: false,
-        aiSuggestion: '',
+        systemGenerated: false,
+        suggestion: '',
       },
       {
         userId: user.id,
         businessId: business.id,
         planStepId: null,
         title: 'Create detailed cost structure analysis',
-        description: 'Break down all costs: infrastructure (AWS), AI compute, team salaries, marketing, and tools.',
+        description: 'Break down all costs: infrastructure (AWS), compute, team salaries, marketing, and tools.',
         priority: 'high',
         status: 'in_progress',
         dueDate: new Date('2025-03-10'),
-        aiGenerated: true,
-        aiSuggestion: 'Use AWS Pricing Calculator for infrastructure estimates. Factor in AI API costs at scale — they grow linearly with users.',
+        systemGenerated: true,
+        suggestion: 'Use AWS Pricing Calculator for infrastructure estimates. Factor in API costs at scale — they grow linearly with users.',
       },
       {
         userId: user.id,
@@ -233,8 +236,8 @@ export async function POST() {
         priority: 'urgent',
         status: 'pending',
         dueDate: new Date('2025-03-25'),
-        aiGenerated: false,
-        aiSuggestion: '',
+        systemGenerated: false,
+        suggestion: '',
       },
       {
         userId: user.id,
@@ -245,8 +248,8 @@ export async function POST() {
         priority: 'medium',
         status: 'pending',
         dueDate: new Date('2025-03-18'),
-        aiGenerated: true,
-        aiSuggestion: 'Use Baremetrics or ProfitWell for SaaS metrics. Focus on LTV:CAC ratio — aim for 3:1 or better.',
+        systemGenerated: true,
+        suggestion: 'Use Baremetrics or ProfitWell for SaaS metrics. Focus on LTV:CAC ratio — aim for 3:1 or better.',
       },
     ];
 
@@ -257,10 +260,10 @@ export async function POST() {
     });
 
     // Link some tasks to steps
-    tasksData[0].planStepId = steps[2]?.id || null; // Business Model step
-    tasksData[2].planStepId = steps[2]?.id || null; // Business Model step
-    tasksData[3].planStepId = steps[3]?.id || null; // Financial Planning step
-    tasksData[4].planStepId = steps[2]?.id || null; // Business Model step
+    tasksData[0].planStepId = steps[2]?.id || null;
+    tasksData[2].planStepId = steps[2]?.id || null;
+    tasksData[3].planStepId = steps[3]?.id || null;
+    tasksData[4].planStepId = steps[2]?.id || null;
 
     for (const taskData of tasksData) {
       await db.task.create({ data: taskData as Parameters<typeof db.task.create>[0]['data'] });
@@ -329,7 +332,7 @@ export async function POST() {
       await db.milestone.create({ data: milestoneData });
     }
 
-    // Create sample financials (actuals for first 2 months, projections for next 6)
+    // Create sample financials
     const actualFinancials = [
       { period: 'month-1', revenue: 0, expenses: 11500, profit: -11500, customers: 0, burnRate: 11500, runway: 13, projection: false },
       { period: 'month-2', revenue: 500, expenses: 12000, profit: -11500, customers: 3, burnRate: 12000, runway: 12, projection: false },
@@ -357,7 +360,7 @@ export async function POST() {
         userId: user.id,
         type: 'step_reminder',
         title: 'Business Model Step In Progress',
-        message: 'You\'re currently working on the Business Model step. You have 2 incomplete checklist items. Let\'s finish them today!',
+        message: 'You\'re currently working on the Business Model step. You have incomplete checklist items. Let\'s finish them today!',
         actionUrl: '/dashboard',
         read: false,
         dismissed: false,
@@ -367,7 +370,7 @@ export async function POST() {
         userId: user.id,
         type: 'warning',
         title: 'Overdue Task: Cost Structure Analysis',
-        message: 'Your "Create detailed cost structure analysis" task is overdue. This is critical for your Financial Planning step. Prioritize it today.',
+        message: 'Your "Create detailed cost structure analysis" task is overdue. This is critical for your Financial Planning step.',
         actionUrl: '/dashboard',
         read: false,
         dismissed: false,
@@ -385,9 +388,9 @@ export async function POST() {
       },
       {
         userId: user.id,
-        type: 'ai_suggestion',
-        title: 'AI Suggestion: Validate Unit Economics',
-        message: 'Based on your current progress, I recommend validating your unit economics before moving to Financial Planning. This will make your projections much more accurate.',
+        type: 'advisor_tip',
+        title: 'Advisor Tip: Validate Unit Economics',
+        message: 'Based on your current progress, we recommend validating your unit economics before moving to Financial Planning. This will make your projections much more accurate.',
         actionUrl: '/dashboard',
         read: true,
         dismissed: false,
@@ -396,8 +399,8 @@ export async function POST() {
       {
         userId: user.id,
         type: 'info',
-        title: 'Welcome to PlanWise AI! 🚀',
-        message: 'Your business plan is set up and ready to go. You\'ve completed 2 out of 10 steps. Follow your AI-guided plan to build a successful business!',
+        title: 'Welcome to Tashyeed!',
+        message: 'Your business plan is set up and ready to go. You\'ve completed 2 out of 10 steps. Follow your structured plan to build a successful business!',
         actionUrl: '/dashboard',
         read: true,
         dismissed: false,

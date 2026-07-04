@@ -5,7 +5,7 @@ import { useAppStore } from "@/lib/store"
 import { getBusinessAnalysis } from "@/lib/api"
 import ReactMarkdown from "react-markdown"
 import {
-  Gauge, Sparkles, Loader2, AlertTriangle, TrendingUp, ThumbsUp, Lightbulb, Clock, Zap
+  Gauge, Lightbulb, Loader2, AlertTriangle, TrendingUp, ThumbsUp, Clock, Zap
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -85,7 +85,7 @@ export function AIAnalysisView() {
     return () => { cancelled = true }
   }, [biz?.id])
 
-  if (!biz) return <EmptyState icon={Gauge} title="No Business Selected" description="Select a business to run AI analysis" />
+  if (!biz) return <EmptyState icon={Gauge} title="No Business Selected" description="Select a business to run business analysis" />
 
   const a = analysis?.analysis
 
@@ -106,11 +106,11 @@ export function AIAnalysisView() {
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 text-white">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-1"><Gauge className="w-5 h-5 text-emerald-400" /><h3 className="text-lg font-semibold">AI Business Analysis</h3></div>
+              <div className="flex items-center gap-2 mb-1"><Gauge className="w-5 h-5 text-emerald-400" /><h3 className="text-lg font-semibold">Business Analysis</h3></div>
               <p className="text-sm text-slate-400">Comprehensive SWOT analysis powered by AI</p>
             </div>
             <Button onClick={runAnalysis} disabled={loading} variant="secondary" className="bg-white/10 hover:bg-white/20 text-white border-white/20">
-              {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Analyzing...</> : <><Sparkles className="w-4 h-4 mr-2" />Re-run Analysis</>}
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Analyzing...</> : <><Lightbulb className="w-4 h-4 mr-2" />Run Analysis</>}
             </Button>
           </div>
           {a && (

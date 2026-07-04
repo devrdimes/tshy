@@ -6,7 +6,7 @@ import { useAppStore } from "@/lib/store"
 import { APP_CONFIG, STAGES, INDUSTRIES, REVENUE_MODELS, TARGET_MARKETS } from "@/lib/constants"
 import { updateUser, createBusiness } from "@/lib/api"
 import {
-  Brain, ListTodo, Sparkles, TrendingUp, ChevronRight, Rocket, Loader2
+  Building2, ListTodo, MessageSquare, TrendingUp, ChevronRight, Rocket, Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,11 +43,11 @@ export function OnboardingFlow() {
 
   const steps = [
     <motion.div key="welcome" {...scaleIn} className="text-center max-w-lg mx-auto">
-      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mx-auto mb-6"><Brain className="w-10 h-10 text-white" /></div>
+      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mx-auto mb-6"><Building2 className="w-10 h-10 text-white" /></div>
       <h1 className="text-3xl font-bold text-foreground mb-3">Welcome to {APP_CONFIG.name}</h1>
       <p className="text-muted-foreground mb-8">{APP_CONFIG.description}</p>
       <div className="grid grid-cols-3 gap-4 mb-8">
-        {[{ icon: ListTodo, label: "10-Step Plan", desc: "Guided business planning" }, { icon: Sparkles, label: "AI Advisor", desc: "Expert guidance 24/7" }, { icon: TrendingUp, label: "Track Progress", desc: "Milestones & financials" }].map((f, i) => (
+        {[{ icon: ListTodo, label: "10-Step Plan", desc: "Guided business planning" }, { icon: MessageSquare, label: "Advisor", desc: "Expert frameworks & guidance" }, { icon: TrendingUp, label: "Track Progress", desc: "Milestones & financials" }].map((f, i) => (
           <div key={i} className="p-3 rounded-lg bg-muted border border-border"><f.icon className="w-6 h-6 text-emerald-600 mx-auto mb-2" /><p className="font-medium text-sm">{f.label}</p><p className="text-[10px] text-muted-foreground">{f.desc}</p></div>
         ))}
       </div>
