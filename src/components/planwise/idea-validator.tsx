@@ -108,6 +108,8 @@ export function IdeaValidatorView() {
   const [currentAnswer, setCurrentAnswer] = useState("")
   const [report, setReport] = useState("")
   const [streaming, setStreaming] = useState(false)
+  const [successScore, setSuccessScore] = useState<number | null>(null)
+  const [generatingPlan, setGeneratingPlan] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -154,6 +156,37 @@ export function IdeaValidatorView() {
     setCurrentAnswer("")
     setReport("")
     setStreaming(false)
+    setSuccessScore(null)
+    setGeneratingPlan(false)
+  }
+
+  const handleGeneratePlan = async () => {
+    setGeneratingPlan(true)
+    const { currentBusiness } = useAppStore.getState()
+    if (!currentBusiness) {
+      alert("No business context found. Please ensure you are logged in properly.")
+      setGeneratingPlan(false)
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('tashyeed_token')
+      const res = await fetch(`/api/business/${currentBusiness.id}/generate-plan`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      
+      if (!res.ok) throw new Error("Failed to generate plan")
+      
+      await useAppStore.getState().refreshBusiness()
+      // Switch to the planner view to see the new plan!
+      useAppStore.getState().setActiveView('planner')
+    } catch (error) {
+      console.error(error)
+      alert("An error occurred while generating the plan.")
+    } finally {
+      setGeneratingPlan(false)
+    }
   }
 
   const runAnalysis = async (finalAnswers: Record<string, string>) => {
@@ -197,6 +230,11 @@ export function IdeaValidatorView() {
               }
             }
           }
+        }
+        // Extract success score once complete
+        const scoreMatch = fullReport.match(/Overall Success Probability\s*\|\s*(\d+)%/i)
+        if (scoreMatch && scoreMatch[1]) {
+           setSuccessScore(parseInt(scoreMatch[1], 10))
         }
       }
       setStreaming(false)
@@ -441,6 +479,35 @@ export function IdeaValidatorView() {
             <div className="w-2 h-2 bg-violet-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
             <div className="w-2 h-2 bg-violet-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
           </div>
+        )}
+
+        {!streaming && successScore !== null && successScore > 40 && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1 }}
+            className="mt-12 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20 rounded-2xl p-6 text-center"
+          >
+            <div className="w-12 h-12 bg-violet-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-lg shadow-violet-500/30">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2">Congratulations!</h3>
+            <p className="text-muted-foreground mb-6">
+              Your idea scored <strong>{successScore}%</strong>, which means it has strong potential. 
+              Would you like our AI to automatically generate a comprehensive 10-step execution plan for this business?
+            </p>
+            <Button 
+              onClick={handleGeneratePlan} 
+              disabled={generatingPlan}
+              className="bg-violet-600 hover:bg-violet-700 text-white font-medium px-8"
+            >
+              {generatingPlan ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating Plan...</>
+              ) : (
+                <><CheckCircle2 className="w-4 h-4 mr-2" /> Generate Step-by-Step Plan</>
+              )}
+            </Button>
+          </motion.div>
         )}
       </div>
     </div>

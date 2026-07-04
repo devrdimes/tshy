@@ -65,8 +65,10 @@ export function AIChatPanel() {
                   const data = JSON.parse(line.slice(6));
                   const text = data.choices[0]?.delta?.content || '';
                   assistantContent += text;
+                  // Strip out command blocks for display so the user doesn't see them
+                  const displayContent = assistantContent.replace(/\[COMMAND:[\s\S]*?(?:\]|$)/g, '').trim();
                   setChatMessages(useAppStore.getState().chatMessages.map(msg => 
-                    msg.id === assistantMsgId ? { ...msg, content: assistantContent } : msg
+                    msg.id === assistantMsgId ? { ...msg, content: displayContent } : msg
                   ));
                 } catch (e) {
                   // Ignore partial json chunks
@@ -77,8 +79,52 @@ export function AIChatPanel() {
         }
       }
 
-      if (user?.id && assistantContent) {
-        saveChatMessage({ userId: user.id, role: "assistant", content: assistantContent }).catch(() => {})
+      // Process any complete commands after the stream is fully finished
+      const commandRegex = /\[COMMAND:\s*([A-Z_]+)(?:\s+({[^\]]+}))?\]/g;
+      let match;
+      const promises = [];
+      while ((match = commandRegex.exec(assistantContent)) !== null) {
+        const commandType = match[1];
+        let payload: any = {};
+        if (match[2]) {
+           try { payload = JSON.parse(match[2]); } catch(e){}
+        }
+        
+        const token = localStorage.getItem('tashyeed_token');
+        const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+
+        if (commandType === 'CREATE_TASK' && currentBusiness?.id) {
+           promises.push(fetch('/api/tasks', { 
+             method: 'POST', 
+             headers, 
+             body: JSON.stringify({...payload, businessId: currentBusiness.id}) 
+           }));
+        } else if (commandType === 'CREATE_MILESTONE' && currentBusiness?.id) {
+           promises.push(fetch(`/api/business/${currentBusiness.id}/milestones`, { 
+             method: 'POST', 
+             headers, 
+             body: JSON.stringify(payload) 
+           }));
+        } else if (commandType === 'GENERATE_PLAN' && currentBusiness?.id) {
+           promises.push(fetch(`/api/business/${currentBusiness.id}/generate-plan`, { 
+             method: 'POST',
+             headers 
+           }));
+        }
+      }
+
+      if (promises.length > 0) {
+         await Promise.all(promises);
+         // Refresh global data so the user sees the new tasks/milestones instantly
+         await useAppStore.getState().refreshTasks();
+         await useAppStore.getState().refreshBusiness();
+      }
+
+      // Save the cleaned message to history
+      const finalDisplayContent = assistantContent.replace(/\[COMMAND:[\s\S]*?\]/g, '').trim();
+
+      if (user?.id && finalDisplayContent) {
+        saveChatMessage({ userId: user.id, role: "assistant", content: finalDisplayContent }).catch(() => {})
       }
     } catch (e) {
       setChatMessages(useAppStore.getState().chatMessages.map(msg => 
