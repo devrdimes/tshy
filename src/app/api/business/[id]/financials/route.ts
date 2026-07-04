@@ -98,13 +98,26 @@ Existing Financial Data:
 ${financialsSummary}
       `.trim();
 
-      const zai = await ZAI.create();
+      const nvidiaApiKey = process.env.NVIDIA_API_KEY;
+      if (!nvidiaApiKey) {
+        return NextResponse.json(
+          { success: false, error: 'NVIDIA API key is not configured' },
+          { status: 500 }
+        );
+      }
 
-      const completion = await zai.chat.completions.create({
-        messages: [
-          {
-            role: 'assistant',
-            content: `You are Tashyeed, an elite financial analyst and business strategist specializing in startup financial projections. You generate realistic, data-driven financial projections.
+      const completionRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${nvidiaApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'meta/llama-3.1-70b-instruct',
+          messages: [
+            {
+              role: 'assistant',
+              content: `You are Tashyeed, an elite financial analyst and business strategist specializing in startup financial projections. You generate realistic, data-driven financial projections.
 
 Generate 12 monthly financial projections for the business described below. Consider the industry, stage, revenue model, and any existing data.
 
@@ -120,15 +133,23 @@ Return ONLY a JSON object with a "projections" array. Each projection must have:
 }
 
 Be realistic but optimistic. Early months should show lower revenue with growth over time. Account for the business's specific industry and stage. Return ONLY the JSON object.`,
-          },
-          {
-            role: 'user',
-            content: `Generate 12-month financial projections for:\n\n${businessContext}`,
-          },
-        ],
-        thinking: { type: 'disabled' },
+            },
+            {
+              role: 'user',
+              content: `Generate 12-month financial projections for:\n\n${businessContext}`,
+            },
+          ],
+          temperature: 0.7,
+          top_p: 0.9,
+          max_tokens: 2000
+        })
       });
 
+      if (!completionRes.ok) {
+         throw new Error(`NVIDIA API error: ${completionRes.statusText}`);
+      }
+
+      const completion = await completionRes.json();
       const responseText = completion.choices[0]?.message?.content;
       if (!responseText) {
         return NextResponse.json(

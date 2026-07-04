@@ -35,13 +35,26 @@ Initial Capital: $${business.initialCapital}
 Monthly Burn Rate: $${business.monthlyBurnRate}
     `.trim();
 
-    const zai = await ZAI.create();
+    const nvidiaApiKey = process.env.NVIDIA_API_KEY;
+    if (!nvidiaApiKey) {
+      return NextResponse.json(
+        { success: false, error: 'NVIDIA API key is not configured' },
+        { status: 500 }
+      );
+    }
 
-    const completion = await zai.chat.completions.create({
-      messages: [
-        {
-          role: 'assistant',
-          content: `You are Tashyeed, an elite business planning expert and strategist. You generate comprehensive, actionable business plan steps for entrepreneurs. You must respond ONLY with valid JSON — no markdown, no explanations outside the JSON structure.
+    const completionRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${nvidiaApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'meta/llama-3.1-70b-instruct',
+        messages: [
+          {
+            role: 'assistant',
+            content: `You are Tashyeed, an elite business planning expert and strategist. You generate comprehensive, actionable business plan steps for entrepreneurs. You must respond ONLY with valid JSON — no markdown, no explanations outside the JSON structure.
 
 Generate exactly 10 business plan steps for the business described below. Each step must be detailed with practical, actionable guidance.
 
@@ -71,15 +84,23 @@ Return a JSON object with a "steps" array. Each step object must have:
 }
 
 IMPORTANT: Tailor every step specifically to the business's industry, stage, and context. Generic advice is unacceptable. Return ONLY the JSON object, no other text.`,
-        },
-        {
-          role: 'user',
-          content: `Generate a comprehensive 10-step business plan for:\n\n${businessContext}`,
-        },
-      ],
-      thinking: { type: 'disabled' },
+          },
+          {
+            role: 'user',
+            content: `Generate a comprehensive 10-step business plan for:\n\n${businessContext}`,
+          },
+        ],
+        temperature: 0.7,
+        top_p: 0.9,
+        max_tokens: 3000
+      })
     });
 
+    if (!completionRes.ok) {
+       throw new Error(`NVIDIA API error: ${completionRes.statusText}`);
+    }
+
+    const completion = await completionRes.json();
     const responseText = completion.choices[0]?.message?.content;
     if (!responseText) {
       return NextResponse.json(
