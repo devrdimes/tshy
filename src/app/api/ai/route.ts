@@ -76,16 +76,6 @@ Checklist: ${step.checklist}
       take: 20, // Last 20 messages for context
     });
 
-    // Save user message
-    await db.chatMessage.create({
-      data: {
-        userId: user.id,
-        role: 'user',
-        content: message,
-        context: [businessContext, stepContext].filter(Boolean).join(' | '),
-      },
-    });
-
     // Build messages array for AI
     const systemPrompt = `You are Tashyeed, the world's most elite business planning advisor and strategist. You combine the expertise of a McKinsey consultant, a Y Combinator partner, and a seasoned serial entrepreneur.
 
@@ -136,30 +126,17 @@ ${stepContext ? `\nCurrent Step Context:\n${stepContext}` : ''}`;
         messages: chatMessages,
         temperature: 1,
         top_p: 1,
-        max_tokens: 16384
+        max_tokens: 16384,
+        stream: true
       })
     });
     
-    const completion = await completionRes.json();
-
-    const response = completion.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.';
-
-    // Save assistant response
-    await db.chatMessage.create({
-      data: {
-        userId: user.id,
-        role: 'assistant',
-        content: response,
-        context: [businessContext, stepContext].filter(Boolean).join(' | '),
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        role: 'assistant',
-        content: response,
-        timestamp: new Date().toISOString(),
+    // Proxy the stream directly to the client
+    return new Response(completionRes.body, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
       },
     });
   } catch (error) {

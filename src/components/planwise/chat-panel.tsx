@@ -9,7 +9,6 @@ import {
   Lightbulb, Send, X, Building2, Trash2, Clock, Maximize2, Minimize2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -35,15 +34,56 @@ export function AIChatPanel() {
       saveChatMessage({ userId: user.id, role: "user", content: message }).catch(() => {})
     }
     setSending(true)
+    const assistantMsgId = (Date.now() + 1).toString();
+    const newAssistantMsg = { id: assistantMsgId, role: "assistant" as const, content: "", context: "", createdAt: new Date().toISOString() };
+    addChatMessage(newAssistantMsg);
+
     try {
-      const response = await chatWithAdvisor(message, currentBusiness?.id, currentStep?.id)
-      const assistantMsg = { id: (Date.now() + 1).toString(), role: "assistant" as const, content: response.content, context: "", createdAt: response.timestamp || new Date().toISOString() }
-      addChatMessage(assistantMsg)
-      if (user?.id) {
-        saveChatMessage({ userId: user.id, role: "assistant", content: response.content }).catch(() => {})
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, businessId: currentBusiness?.id, stepId: currentStep?.id }),
+      });
+
+      if (!response.ok) throw new Error('Failed to connect to AI');
+      
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = "";
+      
+      if (reader) {
+        let done = false;
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          if (value) {
+            const chunkValue = decoder.decode(value);
+            const lines = chunkValue.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  const text = data.choices[0]?.delta?.content || '';
+                  assistantContent += text;
+                  setChatMessages(useAppStore.getState().chatMessages.map(msg => 
+                    msg.id === assistantMsgId ? { ...msg, content: assistantContent } : msg
+                  ));
+                } catch (e) {
+                  // Ignore partial json chunks
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (user?.id && assistantContent) {
+        saveChatMessage({ userId: user.id, role: "assistant", content: assistantContent }).catch(() => {})
       }
     } catch (e) {
-      addChatMessage({ id: (Date.now() + 1).toString(), role: "assistant", content: "I apologize, but I encountered an error. Please try again.", context: "", createdAt: new Date().toISOString() })
+      setChatMessages(useAppStore.getState().chatMessages.map(msg => 
+        msg.id === assistantMsgId ? { ...msg, content: "I apologize, but I encountered an error. Please try again." } : msg
+      ));
     }
     setSending(false)
   }
@@ -69,11 +109,16 @@ export function AIChatPanel() {
     <AnimatePresence>
       {chatOpen && (
         <motion.div
-          initial={{ opacity: 0, x: 400 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 400 }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className={cn("fixed right-0 top-0 bottom-0 bg-card border-l border-border shadow-2xl z-50 flex flex-col", expanded ? "w-full" : "w-full sm:w-[420px]")}
+          className={cn(
+            "fixed bg-card shadow-2xl z-50 flex flex-col overflow-hidden", 
+            expanded 
+              ? "inset-4 sm:inset-10 rounded-2xl border border-border" 
+              : "right-0 top-0 bottom-0 w-full sm:w-[420px] border-l border-border"
+          )}
         >
           {/* Header */}
           <div className="p-4 border-b border-border bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
@@ -106,47 +151,46 @@ export function AIChatPanel() {
           </div>
 
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div ref={scrollRef} className="space-y-4">
-              {chatMessages.length === 0 && (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-950/50 dark:to-teal-950/50 flex items-center justify-center mx-auto mb-4">
-                    <Building2 className="w-8 h-8 text-emerald-600" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-1">AI Business Advisor</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Ask me anything about your business plan!</p>
-                  <div className="space-y-2">
-                    {quickPrompts.map(q => (
-                      <button key={q.text} onClick={() => setInput(q.text)} className="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-sm bg-muted hover:bg-emerald-50 hover:text-emerald-700 text-muted-foreground transition-all border border-transparent hover:border-emerald-200 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-400 dark:hover:border-emerald-800">
-                        <span className="text-base">{q.icon}</span>
-                        <span>{q.text}</span>
-                      </button>
-                    ))}
-                  </div>
+          <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-4 scroll-smooth bg-muted/10">
+            {chatMessages.length === 0 && (
+              <div className="text-center py-12 max-w-md mx-auto">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-950/50 dark:to-teal-950/50 flex items-center justify-center mx-auto mb-6 shadow-sm">
+                  <Building2 className="w-8 h-8 text-emerald-600" />
                 </div>
-              )}
+                <h3 className="font-semibold text-xl text-foreground mb-2">AI Business Advisor</h3>
+                <p className="text-sm text-muted-foreground mb-8">Ask me anything about your business plan, market strategy, or financial model!</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {quickPrompts.map(q => (
+                    <button key={q.text} onClick={() => setInput(q.text)} className="flex flex-col items-start gap-2 w-full text-left p-4 rounded-xl text-sm bg-background border border-border shadow-sm hover:border-emerald-300 hover:shadow-md transition-all dark:hover:border-emerald-800">
+                      <span className="text-xl">{q.icon}</span>
+                      <span className="text-muted-foreground font-medium">{q.text}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className={cn("mx-auto space-y-6", expanded ? "max-w-4xl" : "")}>
               {chatMessages.map(msg => (
-                <div key={msg.id} className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div key={msg.id} className={`flex gap-3.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   {msg.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0">
-                      <Lightbulb className="w-4 h-4 text-emerald-600" />
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shrink-0 shadow-md">
+                      <Lightbulb className="w-4 h-4 text-white" />
                     </div>
                   )}
-                  <div className={cn("rounded-2xl px-4 py-2.5 max-w-[85%] text-sm shadow-sm", msg.role === "user" ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white" : "bg-muted text-foreground")}>
-                    <div className="prose prose-sm max-w-none [&_p]:mb-2 [&_ul]:mb-2 [&_ol]:mb-2 [&_li]:mb-1 [&_strong]:font-semibold [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm">
+                  <div className={cn("rounded-2xl px-5 py-3.5 max-w-[85%] text-sm shadow-sm", msg.role === "user" ? "bg-emerald-600 text-white rounded-br-sm" : "bg-card border border-border text-foreground rounded-bl-sm")}>
+                    <div className="prose prose-sm max-w-none [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:mb-3 [&_ol]:mb-3 [&_li]:mb-1 [&_strong]:font-semibold [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
-                    <p className={cn("text-[9px] mt-1.5", msg.role === "user" ? "text-emerald-100" : "text-muted-foreground/50")}>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                 </div>
               ))}
-              {sending && (
-                <div className="flex gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0">
-                    <Lightbulb className="w-4 h-4 text-emerald-600" />
+              {sending && chatMessages[chatMessages.length - 1]?.role !== "assistant" && (
+                <div className="flex gap-3.5 justify-start">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shrink-0 shadow-md">
+                    <Lightbulb className="w-4 h-4 text-white" />
                   </div>
-                  <div className="bg-muted rounded-2xl px-4 py-3 shadow-sm">
-                    <div className="flex gap-1.5">
+                  <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-5 py-4 shadow-sm">
+                    <div className="flex gap-1.5 items-center h-full">
                       <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                       <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
                       <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
@@ -155,15 +199,17 @@ export function AIChatPanel() {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Input */}
-          <div className="p-3 border-t border-border bg-muted/30">
-            <form onSubmit={e => { e.preventDefault(); handleSend() }} className="flex gap-2">
-              <Input value={input} onChange={e => setInput(e.target.value)} placeholder="Ask your AI advisor..." className="flex-1 bg-background focus:ring-emerald-500" disabled={sending} />
-              <Button type="submit" size="icon" disabled={sending || !input.trim()} className="bg-emerald-600 hover:bg-emerald-700 shrink-0 shadow-md"><Send className="w-4 h-4" /></Button>
-            </form>
-            <p className="text-[9px] text-muted-foreground text-center mt-1.5">AI may produce inaccurate information. Verify important details.</p>
+          <div className="p-4 border-t border-border bg-card">
+            <div className={cn("mx-auto", expanded ? "max-w-4xl" : "")}>
+              <form onSubmit={e => { e.preventDefault(); handleSend() }} className="flex gap-3">
+                <Input value={input} onChange={e => setInput(e.target.value)} placeholder="Ask your AI advisor..." className="flex-1 h-12 rounded-xl bg-background border-muted-foreground/20 focus-visible:ring-emerald-500 shadow-sm" disabled={sending} />
+                <Button type="submit" size="icon" disabled={sending || !input.trim()} className="h-12 w-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 shrink-0 shadow-md"><Send className="w-5 h-5" /></Button>
+              </form>
+              <p className="text-[10px] text-muted-foreground text-center mt-2.5">AI may produce inaccurate information. Verify important details.</p>
+            </div>
           </div>
         </motion.div>
       )}
