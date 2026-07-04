@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import ZAI from 'z-ai-web-dev-sdk';
-
 // POST /api/ai/generate-tasks — AI generates suggested tasks for a plan step
 export async function POST(request: NextRequest) {
   try {
@@ -64,13 +62,19 @@ Checklist: ${step.checklist}
       ? `Existing tasks for this step: ${existingTasks.map((t) => `"${t.title}" (${t.status})`).join(', ')}`
       : 'No existing tasks for this step yet.';
 
-    const zai = await ZAI.create();
-
-    const completion = await zai.chat.completions.create({
-      messages: [
-        {
-          role: 'assistant',
-          content: `You are Tashyeed, an elite business planning expert. Generate 3-5 highly actionable, specific tasks for the given business plan step. 
+    const nvidiaApiKey = process.env.NVIDIA_API_KEY || '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';
+    const completionRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${nvidiaApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'z-ai/glm-5.2',
+        messages: [
+          {
+            role: 'assistant',
+            content: `You are Tashyeed, an elite business planning expert. Generate 3-5 highly actionable, specific tasks for the given business plan step. 
 
 Each task should be:
 - Specific and measurable (not vague)
@@ -87,15 +91,20 @@ Return ONLY a JSON object with a "tasks" array. Each task must have:
   "suggestion": string (a specific tip or resource for completing this task)
 }
 
-Do NOT duplicate or overlap with existing tasks. Be creative and specific to this business's context. Return ONLY the JSON object.`,
-        },
-        {
-          role: 'user',
-          content: `Generate 3-5 actionable tasks for this plan step:\n\n${businessContext}\n\n${stepContext}\n\n${existingTasksStr}`,
-        },
-      ],
-      thinking: { type: 'disabled' },
+Do NOT duplicate or overlap with existing tasks. Be creative and specific to this business's context. Return ONLY the JSON object.`
+          },
+          {
+            role: 'user',
+            content: `Generate 3-5 actionable tasks for this plan step:\n\n${businessContext}\n\n${stepContext}\n\n${existingTasksStr}`
+          }
+        ],
+        temperature: 1,
+        top_p: 1,
+        max_tokens: 16384
+      })
     });
+
+    const completion = await completionRes.json();
 
     const responseText = completion.choices[0]?.message?.content;
     if (!responseText) {

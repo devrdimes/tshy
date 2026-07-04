@@ -117,11 +117,23 @@ ${stepContext ? `\nCurrent Step Context:\n${stepContext}` : ''}`;
       { role: 'user' as const, content: message },
     ];
 
-    const zai = await ZAI.create();
-    const completion = await zai.chat.completions.create({
-      messages: chatMessages,
-      thinking: { type: 'disabled' },
+    const nvidiaApiKey = process.env.NVIDIA_API_KEY || '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';
+    const completionRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${nvidiaApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'z-ai/glm-5.2',
+        messages: chatMessages,
+        temperature: 1,
+        top_p: 1,
+        max_tokens: 16384
+      })
     });
+    
+    const completion = await completionRes.json();
 
     const response = completion.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.';
 

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import ZAI from 'z-ai-web-dev-sdk';
-
 // POST /api/ai/business-analysis — AI analyzes business and provides recommendations
 export async function POST(request: NextRequest) {
   try {
@@ -69,13 +67,19 @@ ${business.financials.map((f) => `- ${f.period}: Revenue $${f.revenue}, Expenses
 ${business.tasks.map((t) => `- [${t.priority}] ${t.title} (${t.status})`).join('\n') || 'No active tasks'}
     `.trim();
 
-    const zai = await ZAI.create();
-
-    const completion = await zai.chat.completions.create({
-      messages: [
-        {
-          role: 'assistant',
-          content: `You are Tashyeed, the world's most elite business analyst and strategist. You combine McKinsey-level analytical rigor with Y Combinator's startup pragmatism and a seasoned venture capitalist's pattern recognition.
+    const nvidiaApiKey = process.env.NVIDIA_API_KEY || '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';
+    const completionRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${nvidiaApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'z-ai/glm-5.2',
+        messages: [
+          {
+            role: 'assistant',
+            content: `You are Tashyeed, the world's most elite business analyst and strategist. You combine McKinsey-level analytical rigor with Y Combinator's startup pragmatism and a seasoned venture capitalist's pattern recognition.
 
 Perform a comprehensive analysis of the business described below. Be brutally honest but constructive. Identify both strengths to leverage and weaknesses to address.
 
@@ -116,15 +120,20 @@ Return ONLY a JSON object with this exact structure:
   "summary": string (2-3 paragraph executive summary of the analysis)
 }
 
-Be specific to this business. Generic advice is unacceptable. Return ONLY the JSON object.`,
-        },
-        {
-          role: 'user',
-          content: `Analyze this business comprehensively:\n\n${businessContext}`,
-        },
-      ],
-      thinking: { type: 'disabled' },
+Be specific to this business. Generic advice is unacceptable. Return ONLY the JSON object.`
+          },
+          {
+            role: 'user',
+            content: `Analyze this business comprehensively:\n\n${businessContext}`
+          }
+        ],
+        temperature: 1,
+        top_p: 1,
+        max_tokens: 16384
+      })
     });
+    
+    const completion = await completionRes.json();
 
     const responseText = completion.choices[0]?.message?.content;
     if (!responseText) {
