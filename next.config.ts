@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+  serverExternalPackages: ["@floating-ui/react", "@floating-ui/react-dom", "@floating-ui/core", "@floating-ui/dom"],
   experimental: {
     serverMinification: false,
   },
