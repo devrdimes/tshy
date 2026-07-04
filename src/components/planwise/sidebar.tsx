@@ -6,7 +6,7 @@ import { useAppStore } from "@/lib/store"
 import { APP_CONFIG, INDUSTRIES, STAGES, REVENUE_MODELS, TARGET_MARKETS } from "@/lib/constants"
 import { createBusiness } from "@/lib/api"
 import {
-  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, Settings, ChevronRight, ChevronLeft, Plus, Building2, Menu, CheckCircle2, Loader2, Zap, Rocket, MessageSquare, BarChart3
+  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, Settings, ChevronRight, ChevronLeft, Plus, Building2, Menu, CheckCircle2, Loader2, Zap, Rocket, MessageSquare, BarChart3, FlaskConical
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -203,6 +203,7 @@ export function Sidebar({ newBizOpen, setNewBizOpen }: { newBizOpen: boolean; se
     { id: "financials", label: "Financial Projections", icon: DollarSign, description: "Revenue & expenses" },
     { id: "milestones", label: "Milestones", icon: Flag, description: "Key achievements" },
     { id: "analysis", label: "Business Analysis", icon: BarChart3, description: "SWOT & insights" },
+    { id: "idea-validator", label: "Idea Validator", icon: FlaskConical, description: "AI idea scoring" },
     { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount, description: "Alerts & updates" },
     { id: "settings", label: "Settings", icon: Settings, description: "Preferences" },
   ]

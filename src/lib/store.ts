@@ -179,6 +179,7 @@ interface AppState {
     | 'milestones'
     | 'notifications'
     | 'analysis'
+    | 'idea-validator'
     | 'settings'
     | 'onboarding'
     | 'landing'
