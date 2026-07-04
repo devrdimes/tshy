@@ -6,7 +6,7 @@ import { useAppStore } from "@/lib/store"
 import { APP_CONFIG, INDUSTRIES, STAGES, REVENUE_MODELS, TARGET_MARKETS } from "@/lib/constants"
 import { createBusiness } from "@/lib/api"
 import {
-  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, Settings, ChevronRight, ChevronLeft, Plus, Building2, Menu, CheckCircle2, Loader2, Zap, Rocket, MessageSquare, BarChart3, FlaskConical
+  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, Settings, ChevronRight, ChevronLeft, Plus, Building2, Menu, CheckCircle2, Loader2, Zap, Rocket, MessageSquare, BarChart3, FlaskConical, Globe
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -74,7 +74,7 @@ function NewBusinessDialog({ open, onOpenChange }: { open: boolean; onOpenChange
 export { NewBusinessDialog }
 
 function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navItems: { id: string; label: string; icon: React.ElementType; badge?: number; description?: string }[]; bizOpen: boolean; setBizOpen: (v: boolean) => void; setNewBizOpen: (v: boolean) => void }) {
-  const { sidebarOpen, setSidebarOpen, activeView, setActiveView, currentBusiness, businesses, setCurrentBusiness, user, unreadCount } = useAppStore()
+  const { sidebarOpen, setSidebarOpen, activeView, setActiveView, currentBusiness, businesses, setCurrentBusiness, user, unreadCount, language, setLanguage } = useAppStore()
   const completedSteps = currentBusiness?.planSteps?.filter(s => s.status === "completed").length ?? 0
   const totalSteps = currentBusiness?.planSteps?.length ?? 10
   const progress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0
@@ -162,6 +162,42 @@ function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navI
           )
         })}
       </nav>
+
+      {/* Language Switcher */}
+      <div className="px-3 pb-1">
+        {sidebarOpen !== false ? (
+          <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/50 p-1">
+            <Globe className="w-3.5 h-3.5 text-muted-foreground ml-1 shrink-0" />
+            {(['en', 'ar', 'fr'] as const).map((lng) => (
+              <button
+                key={lng}
+                onClick={() => setLanguage(lng)}
+                className={cn(
+                  "flex-1 text-[11px] font-semibold rounded-lg py-1 transition-all",
+                  language === lng
+                    ? "bg-emerald-500 text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {lng.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={() => {
+                const langs: Array<'en'|'ar'|'fr'> = ['en','ar','fr']
+                const next = langs[(langs.indexOf(language) + 1) % 3]
+                setLanguage(next)
+              }} className="w-full flex items-center justify-center rounded-xl p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-all">
+                <Globe className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Switch Language</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
 
       {/* Advisor Button */}
       <div className="px-3 pb-3">

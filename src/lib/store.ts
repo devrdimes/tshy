@@ -188,6 +188,8 @@ interface AppState {
   setChatOpen: (open: boolean) => void
   isLoading: boolean
   setIsLoading: (loading: boolean) => void
+  language: 'en' | 'ar' | 'fr'
+  setLanguage: (lang: 'en' | 'ar' | 'fr') => void
 
   // Initialize
   initialize: () => Promise<void>
@@ -365,6 +367,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setChatOpen: (open) => set({ chatOpen: open }),
   isLoading: false,
   setIsLoading: (loading) => set({ isLoading: loading }),
+  language: (typeof window !== 'undefined' ? (localStorage.getItem('tashyeed_lang') as 'en'|'ar'|'fr' || 'en') : 'en'),
+  setLanguage: (lang) => {
+    if (typeof window !== 'undefined') localStorage.setItem('tashyeed_lang', lang)
+    set({ language: lang })
+  },
 
   // Initialize
   initialize: async () => {

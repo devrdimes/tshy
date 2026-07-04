@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 export function AIChatPanel() {
-  const { chatOpen, setChatOpen, chatMessages, addChatMessage, setChatMessages, currentBusiness, currentStep, user } = useAppStore()
+  const { chatOpen, setChatOpen, chatMessages, addChatMessage, setChatMessages, currentBusiness, currentStep, user, language } = useAppStore()
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
   const [clearing, setClearing] = useState(false)
@@ -42,7 +42,7 @@ export function AIChatPanel() {
       const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, businessId: currentBusiness?.id, stepId: currentStep?.id }),
+        body: JSON.stringify({ message, businessId: currentBusiness?.id, stepId: currentStep?.id, language }),
       });
 
       if (!response.ok) throw new Error('Failed to connect to AI');
@@ -144,12 +144,27 @@ export function AIChatPanel() {
     setClearing(false)
   }
 
-  const quickPrompts = [
-    { icon: "🎯", text: "What should I focus on next?" },
-    { icon: "📊", text: "Analyze my business strategy" },
-    { icon: "💰", text: "Help me with financial planning" },
-    { icon: "🚀", text: "How can I grow faster?" },
-  ]
+  const quickPromptsByLang = {
+    en: [
+      { icon: "🎯", text: "What should I focus on next?" },
+      { icon: "📊", text: "Analyze my business strategy" },
+      { icon: "💰", text: "Help me with financial planning" },
+      { icon: "🚀", text: "How can I grow faster?" },
+    ],
+    ar: [
+      { icon: "🎯", text: "ما الذي يجب أن أركز عليه الآن؟" },
+      { icon: "📊", text: "حلل استراتيجية عملي" },
+      { icon: "💰", text: "ساعدني في التخطيط المالي" },
+      { icon: "🚀", text: "كيف يمكنني النمو بشكل أسرع؟" },
+    ],
+    fr: [
+      { icon: "🎯", text: "Sur quoi dois-je me concentrer ?" },
+      { icon: "📊", text: "Analyse ma stratégie d'entreprise" },
+      { icon: "💰", text: "Aide-moi avec la planification financière" },
+      { icon: "🚀", text: "Comment croître plus vite ?" },
+    ],
+  }
+  const quickPrompts = quickPromptsByLang[language] ?? quickPromptsByLang.en
 
   return (
     <AnimatePresence>
