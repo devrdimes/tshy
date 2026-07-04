@@ -62,7 +62,14 @@ Checklist: ${step.checklist}
       ? `Existing tasks for this step: ${existingTasks.map((t) => `"${t.title}" (${t.status})`).join(', ')}`
       : 'No existing tasks for this step yet.';
 
-    const nvidiaApiKey = process.env.NVIDIA_API_KEY || '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';
+    const nvidiaApiKey = process.env.NVIDIA_API_KEY;
+    if (!nvidiaApiKey) {
+      return NextResponse.json(
+        { success: false, error: 'NVIDIA API key is not configured on the server' },
+        { status: 500 }
+      );
+    }
+
     const completionRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
       headers: {
