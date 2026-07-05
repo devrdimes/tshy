@@ -9,9 +9,9 @@ export async function POST(request: NextRequest) {
     const { message, businessId, stepId, language } = body;
     const lang = language || 'en'
     const langInstructions: Record<string, string> = {
-      en: 'Respond in English.',
-      ar: 'يجب أن ترد باللغة العربية فقط. استخدم أسلوبًا احترافيًا وواضحًا.',
-      fr: 'Réponds uniquement en français. Utilise un ton professionnel et clair.',
+      en: 'CRITICAL: You MUST respond in English. Do NOT use any other language.',
+      ar: 'CRITICAL: You MUST respond entirely in Arabic (العربية). Do NOT output any English text in your response, except for code or system commands. TRANSLATE ALL CONCEPTS TO ARABIC.',
+      fr: 'CRITICAL: You MUST respond entirely in French (Français). Do NOT output any English text in your response, except for code or system commands. TRANSLATE ALL CONCEPTS TO FRENCH.',
     }
 
     if (!message) {
@@ -85,7 +85,7 @@ Checklist: ${step.checklist}
     // Build messages array for AI
     const systemPrompt = `You are Tashyeed, an elite business advisor. You are sharp, direct, and brilliant — combining the precision of McKinsey, the instincts of a Y Combinator partner, and the hustle of a serial founder.
 
-LANGUAGE INSTRUCTION (MANDATORY): ${langInstructions[lang]}
+${langInstructions[lang]}
 
 RESPONSE STYLE (CRITICAL):
 - Be CONCISE and SPECIFIC. No padding, no fluff, no generic advice.

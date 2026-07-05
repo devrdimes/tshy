@@ -11,9 +11,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 export function AIChatPanel() {
   const { chatOpen, setChatOpen, chatMessages, addChatMessage, setChatMessages, currentBusiness, currentStep, user, language } = useAppStore()
+  const { t } = useTranslation()
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
   const [clearing, setClearing] = useState(false)
@@ -161,8 +163,8 @@ export function AIChatPanel() {
                   <Lightbulb className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-base">Tashyeed Advisor</h3>
-                  <p className="text-[10px] text-emerald-100 flex items-center gap-1"><Clock className="w-3 h-3" />Online • Ready to help</p>
+                  <h3 className="font-semibold text-base">{t('chat.advisor')}</h3>
+                  <p className="text-[10px] text-emerald-100 flex items-center gap-1"><Clock className="w-3 h-3" />Online</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -238,7 +240,7 @@ export function AIChatPanel() {
           <div className="p-4 border-t border-border bg-card">
             <div className={cn("mx-auto", expanded ? "max-w-4xl" : "")}>
               <form onSubmit={e => { e.preventDefault(); handleSend() }} className="flex gap-3">
-                <Input value={input} onChange={e => setInput(e.target.value)} placeholder="Ask your AI advisor..." className="flex-1 h-12 rounded-xl bg-background border-muted-foreground/20 focus-visible:ring-emerald-500 shadow-sm" disabled={sending} />
+                <Input value={input} onChange={e => setInput(e.target.value)} placeholder={t('chat.placeholder')} className="flex-1 h-12 rounded-xl bg-background border-muted-foreground/20 focus-visible:ring-emerald-500 shadow-sm" disabled={sending} />
                 <Button type="submit" size="icon" disabled={sending || !input.trim()} className="h-12 w-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 shrink-0 shadow-md"><Send className="w-5 h-5" /></Button>
               </form>
               <p className="text-[10px] text-muted-foreground text-center mt-2.5">AI may produce inaccurate information. Verify important details.</p>

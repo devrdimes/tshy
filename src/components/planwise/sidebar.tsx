@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAppStore } from "@/lib/store"
+import { useTranslation } from "@/lib/i18n"
 import { APP_CONFIG, INDUSTRIES, STAGES, REVENUE_MODELS, TARGET_MARKETS } from "@/lib/constants"
 import { createBusiness } from "@/lib/api"
 import {
@@ -75,6 +76,7 @@ export { NewBusinessDialog }
 
 function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navItems: { id: string; label: string; icon: React.ElementType; badge?: number; description?: string }[]; bizOpen: boolean; setBizOpen: (v: boolean) => void; setNewBizOpen: (v: boolean) => void }) {
   const { sidebarOpen, setSidebarOpen, activeView, setActiveView, currentBusiness, businesses, setCurrentBusiness, user, unreadCount, language, setLanguage } = useAppStore()
+  const { t } = useTranslation()
   const completedSteps = currentBusiness?.planSteps?.filter(s => s.status === "completed").length ?? 0
   const totalSteps = currentBusiness?.planSteps?.length ?? 10
   const progress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0
@@ -203,7 +205,7 @@ function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navI
       <div className="px-3 pb-3">
         <button onClick={() => useAppStore.getState().setChatOpen(true)} className={cn("w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 pulse-glow")}>
           <MessageSquare className="w-5 h-5 shrink-0" />
-          {sidebarOpen !== false && <span>Advisor</span>}
+          {sidebarOpen !== false && <span>{t('chat.advisor')}</span>}
         </button>
       </div>
 
@@ -230,18 +232,19 @@ function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navI
 
 export function Sidebar({ newBizOpen, setNewBizOpen }: { newBizOpen: boolean; setNewBizOpen: (v: boolean) => void }) {
   const { sidebarOpen, unreadCount } = useAppStore()
+  const { t } = useTranslation()
   const [bizOpen, setBizOpen] = useState(false)
 
   const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, description: "Overview & stats" },
-    { id: "planner", label: "Step-by-Step Plan", icon: ListTodo, description: "10-step roadmap" },
-    { id: "tasks", label: "Tasks", icon: CheckCircle2, description: "Action items" },
-    { id: "financials", label: "Financial Projections", icon: DollarSign, description: "Revenue & expenses" },
-    { id: "milestones", label: "Milestones", icon: Flag, description: "Key achievements" },
-    { id: "analysis", label: "Business Analysis", icon: BarChart3, description: "SWOT & insights" },
+    { id: "dashboard", label: t('nav.dashboard'), icon: LayoutDashboard, description: "Overview & stats" },
+    { id: "planner", label: t('nav.planner'), icon: ListTodo, description: "10-step roadmap" },
+    { id: "tasks", label: t('nav.tasks'), icon: CheckCircle2, description: "Action items" },
+    { id: "financials", label: t('nav.financials'), icon: DollarSign, description: "Revenue & expenses" },
+    { id: "milestones", label: t('nav.milestones'), icon: Flag, description: "Key achievements" },
+    { id: "analysis", label: t('nav.analysis'), icon: BarChart3, description: "SWOT & insights" },
     { id: "idea-validator", label: "Idea Validator", icon: FlaskConical, description: "AI idea scoring" },
     { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount, description: "Alerts & updates" },
-    { id: "settings", label: "Settings", icon: Settings, description: "Preferences" },
+    { id: "settings", label: t('nav.settings'), icon: Settings, description: "Preferences" },
   ]
 
   return (

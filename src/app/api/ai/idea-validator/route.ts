@@ -7,9 +7,9 @@ export async function POST(request: NextRequest) {
     const { answers, language } = body;
     const lang = language || 'en';
     const langInstructions: Record<string, string> = {
-      en: 'Respond entirely in English.',
-      ar: 'يجب أن ترد باللغة العربية فقط (ما عدا الأرقام والنسب المئوية إن لزم الأمر).',
-      fr: 'Réponds entièrement en français.',
+      en: 'CRITICAL: You MUST respond in English. Do NOT use any other language.',
+      ar: 'CRITICAL: You MUST respond entirely in Arabic (العربية). Do NOT output any English text in your response. TRANSLATE ALL CONCEPTS TO ARABIC.',
+      fr: 'CRITICAL: You MUST respond entirely in French (Français). Do NOT output any English text in your response. TRANSLATE ALL CONCEPTS TO FRENCH.',
     };
 
     if (!answers || typeof answers !== 'object') {
@@ -27,9 +27,9 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = `You are the world's most elite venture capital analyst and startup strategist — a hybrid of a Y Combinator partner, a McKinsey senior consultant, and a seasoned serial entrepreneur with 20+ exits.
 
-Your job is to analyze a startup idea based on the founder's answers to a questionnaire and produce an honest, brutally detailed, professional report.
+${langInstructions[lang]}
 
-LANGUAGE INSTRUCTION (MANDATORY): ${langInstructions[lang]}
+Your job is to analyze a startup idea based on the founder's answers to a questionnaire and produce an honest, brutally detailed, professional report.
 IMPORTANT: In the "Scoring Dashboard" table, you must include a row with the exact metric name (even if translating the rest of the text): "Overall Success Probability" so our system can parse the score correctly.
 
 ---
