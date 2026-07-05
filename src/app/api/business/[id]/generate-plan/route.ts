@@ -50,7 +50,7 @@ Monthly Burn Rate: $${business.monthlyBurnRate}
         'Authorization': `Bearer ${nvidiaApiKey}`
       },
       body: JSON.stringify({
-        model: 'meta/llama-3.1-70b-instruct',
+        model: 'meta/llama-3.1-8b-instruct',
         messages: [
           {
             role: 'assistant',
