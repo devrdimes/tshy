@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
     const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'No user found' },
-        { status: 404 }
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
@@ -130,7 +130,7 @@ ${stepContext ? `\nCURRENT STEP:\n${stepContext}` : ''}`;
         'Authorization': `Bearer ${nvidiaApiKey}`
       },
       body: JSON.stringify({
-        model: 'z-ai/glm-5.2',
+        model: 'meta/llama-3.1-70b-instruct',
         messages: chatMessages,
         temperature: 0.7,
         top_p: 0.9,

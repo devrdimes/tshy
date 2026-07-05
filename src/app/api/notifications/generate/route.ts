@@ -142,6 +142,7 @@ Prioritize the most urgent items first. Return ONLY the JSON object.`,
     try {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('No JSON found');
+      const promises: Promise<any>[] = [];
       const parsed = JSON.parse(jsonMatch[0]);
       notificationsData = parsed.notifications || parsed;
     } catch {
@@ -153,7 +154,7 @@ Prioritize the most urgent items first. Return ONLY the JSON object.`,
     }
 
     // Save notifications to DB
-    const savedNotifications = [];
+    const savedNotifications: any[] = [];
     for (const notif of notificationsData as Record<string, unknown>[]) {
       const saved = await db.notification.create({
         data: {

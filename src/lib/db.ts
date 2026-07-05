@@ -62,7 +62,9 @@ function transformKeysToCamel<T>(obj: T): T {
 // ── Where Clause Builder ─────────────────────────────────────
 
 type WhereValue = string | number | boolean | null | Date | WhereValue[] | Record<string, unknown>
-type WhereClause = Record<string, WhereValue | WhereClause>
+interface WhereClause {
+  [key: string]: WhereValue | WhereClause
+}
 
 function buildFilters(query: any, where: WhereClause): any {
   for (const [key, value] of Object.entries(where)) {

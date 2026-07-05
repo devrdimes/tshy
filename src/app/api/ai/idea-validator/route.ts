@@ -126,7 +126,7 @@ Be specific to THIS idea. Generic advice is unacceptable. Use real examples, rea
         'Authorization': `Bearer ${nvidiaApiKey}`
       },
       body: JSON.stringify({
-        model: 'z-ai/glm-5.2',
+        model: 'meta/llama-3.1-70b-instruct',
         messages: [
           { role: 'assistant', content: systemPrompt },
           { role: 'user', content: `Please analyze this startup idea based on these questionnaire answers:\n\n${answersText}` }

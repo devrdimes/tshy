@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverMinification: false,
   },
+  // @ts-ignore
   eslint: {
     ignoreDuringBuilds: true,
   },

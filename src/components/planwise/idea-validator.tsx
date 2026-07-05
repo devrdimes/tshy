@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import { useAppStore } from "@/lib/store"
 
 // ── Questions ──────────────────────────────────────────────────
 const QUESTIONS = [

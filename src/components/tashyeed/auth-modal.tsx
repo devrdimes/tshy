@@ -22,7 +22,7 @@ import {
   getPasswordStrength,
 } from "@/components/tashyeed/password-strength"
 
-interface AuthUser {
+export interface AuthUser {
   id: string
   name: string
   email: string

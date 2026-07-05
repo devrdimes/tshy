@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const priority = searchParams.get('priority');
 
-    const where: Record<string, unknown> = { userId: user.id };
+    const where: any = { userId: user.id };
     if (businessId) where.businessId = businessId;
     if (planStepId) where.planStepId = planStepId;
     if (status) where.status = status;

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const dismissed = searchParams.get('dismissed');
     const type = searchParams.get('type');
 
-    const where: Record<string, unknown> = { userId: user.id };
+    const where: any = { userId: user.id };
 
     // Default: exclude dismissed notifications unless explicitly requested
     if (dismissed !== null && dismissed !== undefined) {

@@ -43,7 +43,7 @@ function StepChecklist({ step, businessId }: { step: PlanStep; businessId: strin
     const item = newItems[idx]
     newItems[idx] = item.startsWith("✅") ? item.replace("✅", "⬜") : item.startsWith("⬜") ? item.replace("⬜", "✅") : "✅ " + item
     try {
-      await updatePlanStep(businessId, step.id, { checklist: newItems })
+      await updatePlanStep(businessId, step.id, { checklist: JSON.stringify(newItems) })
       await refreshBusiness()
     } catch (e) { console.error(e) }
   }

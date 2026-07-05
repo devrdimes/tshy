@@ -73,6 +73,8 @@ export interface Task {
   suggestion: string
   businessId: string | null
   planStepId: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Notification {

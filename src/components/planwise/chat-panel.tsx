@@ -39,13 +39,20 @@ export function AIChatPanel() {
     addChatMessage(newAssistantMsg);
 
     try {
+      const token = localStorage.getItem('tashyeed_token');
       const response = await fetch('/api/ai', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ message, businessId: currentBusiness?.id, stepId: currentStep?.id, language }),
       });
 
-      if (!response.ok) throw new Error('Failed to connect to AI');
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData?.error || `Server error: ${response.status}`);
+      }
       
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -82,7 +89,7 @@ export function AIChatPanel() {
       // Process any complete commands after the stream is fully finished
       const commandRegex = /\[COMMAND:\s*([A-Z_]+)(?:\s+({[^\]]+}))?\]/g;
       let match;
-      const promises = [];
+      const promises: Promise<Response>[] = [];
       while ((match = commandRegex.exec(assistantContent)) !== null) {
         const commandType = match[1];
         let payload: any = {};
@@ -126,9 +133,10 @@ export function AIChatPanel() {
       if (user?.id && finalDisplayContent) {
         saveChatMessage({ userId: user.id, role: "assistant", content: finalDisplayContent }).catch(() => {})
       }
-    } catch (e) {
-      setChatMessages(useAppStore.getState().chatMessages.map(msg => 
-        msg.id === assistantMsgId ? { ...msg, content: "I apologize, but I encountered an error. Please try again." } : msg
+    } catch (e: any) {
+      const errorMsg = e?.message || 'Unknown error';
+      setChatMessages(useAppStore.getState().chatMessages.map(msg =>
+        msg.id === assistantMsgId ? { ...msg, content: `❌ **Error:** ${errorMsg}\n\nPlease try again or check your connection.` } : msg
       ));
     }
     setSending(false)
