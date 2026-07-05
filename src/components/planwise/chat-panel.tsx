@@ -53,40 +53,15 @@ export function AIChatPanel() {
         const errData = await response.json().catch(() => ({}));
         throw new Error(errData?.error || `Server error: ${response.status}`);
       }
-      
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let assistantContent = "";
-      
-      if (reader) {
-        let done = false;
-        while (!done) {
-          const { value, done: doneReading } = await reader.read();
-          done = doneReading;
-          if (value) {
-            const chunkValue = decoder.decode(value);
-            const lines = chunkValue.split('\n');
-            for (const line of lines) {
-              if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
-                try {
-                  const data = JSON.parse(line.slice(6));
-                  const text = data.choices[0]?.delta?.content || '';
-                  assistantContent += text;
-                  // Strip out command blocks for display so the user doesn't see them
-                  const displayContent = assistantContent.replace(/\[COMMAND:[\s\S]*?(?:\]|$)/g, '').trim();
-                  setChatMessages(useAppStore.getState().chatMessages.map(msg => 
-                    msg.id === assistantMsgId ? { ...msg, content: displayContent } : msg
-                  ));
-                } catch (e) {
-                  // Ignore partial json chunks
-                }
-              }
-            }
-          }
-        }
+
+      const data = await response.json();
+      if (!data.success || !data.reply) {
+        throw new Error(data.error || 'Empty response from AI');
       }
 
-      // Process any complete commands after the stream is fully finished
+      const assistantContent: string = data.reply;
+
+      // Process workspace commands embedded in the reply
       const commandRegex = /\[COMMAND:\s*([A-Z_]+)(?:\s+({[^\]]+}))?\]/g;
       let match;
       const promises: Promise<Response>[] = [];
@@ -96,39 +71,28 @@ export function AIChatPanel() {
         if (match[2]) {
            try { payload = JSON.parse(match[2]); } catch(e){}
         }
-        
-        const token = localStorage.getItem('tashyeed_token');
         const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-
         if (commandType === 'CREATE_TASK' && currentBusiness?.id) {
-           promises.push(fetch('/api/tasks', { 
-             method: 'POST', 
-             headers, 
-             body: JSON.stringify({...payload, businessId: currentBusiness.id}) 
-           }));
+           promises.push(fetch('/api/tasks', { method: 'POST', headers, body: JSON.stringify({...payload, businessId: currentBusiness.id}) }));
         } else if (commandType === 'CREATE_MILESTONE' && currentBusiness?.id) {
-           promises.push(fetch(`/api/business/${currentBusiness.id}/milestones`, { 
-             method: 'POST', 
-             headers, 
-             body: JSON.stringify(payload) 
-           }));
+           promises.push(fetch(`/api/business/${currentBusiness.id}/milestones`, { method: 'POST', headers, body: JSON.stringify(payload) }));
         } else if (commandType === 'GENERATE_PLAN' && currentBusiness?.id) {
-           promises.push(fetch(`/api/business/${currentBusiness.id}/generate-plan`, { 
-             method: 'POST',
-             headers 
-           }));
+           promises.push(fetch(`/api/business/${currentBusiness.id}/generate-plan`, { method: 'POST', headers }));
         }
       }
 
       if (promises.length > 0) {
          await Promise.all(promises);
-         // Refresh global data so the user sees the new tasks/milestones instantly
          await useAppStore.getState().refreshTasks();
          await useAppStore.getState().refreshBusiness();
       }
 
-      // Save the cleaned message to history
+      // Strip command blocks and show clean reply instantly
       const finalDisplayContent = assistantContent.replace(/\[COMMAND:[\s\S]*?\]/g, '').trim();
+
+      setChatMessages(useAppStore.getState().chatMessages.map(msg =>
+        msg.id === assistantMsgId ? { ...msg, content: finalDisplayContent } : msg
+      ));
 
       if (user?.id && finalDisplayContent) {
         saveChatMessage({ userId: user.id, role: "assistant", content: finalDisplayContent }).catch(() => {})
@@ -136,7 +100,7 @@ export function AIChatPanel() {
     } catch (e: any) {
       const errorMsg = e?.message || 'Unknown error';
       setChatMessages(useAppStore.getState().chatMessages.map(msg =>
-        msg.id === assistantMsgId ? { ...msg, content: `❌ **Error:** ${errorMsg}\n\nPlease try again or check your connection.` } : msg
+        msg.id === assistantMsgId ? { ...msg, content: `❌ **Error:** ${errorMsg}\n\nPlease try again.` } : msg
       ));
     }
     setSending(false)

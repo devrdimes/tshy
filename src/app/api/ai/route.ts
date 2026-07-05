@@ -130,23 +130,36 @@ ${stepContext ? `\nCURRENT STEP:\n${stepContext}` : ''}`;
         'Authorization': `Bearer ${nvidiaApiKey}`
       },
       body: JSON.stringify({
-        model: 'meta/llama-3.1-70b-instruct',
+        model: 'meta/llama-3.1-8b-instruct',  // Fast 8B model — ~5-10s vs 60s for 70B
         messages: chatMessages,
-        temperature: 0.7,
+        temperature: 0.6,
         top_p: 0.9,
-        max_tokens: 1200,
-        stream: true
+        max_tokens: 600,   // Concise responses — no need for long tokens in chat
+        stream: false      // Non-streaming — shows full response at once, feels faster
       })
     });
-    
-    // Proxy the stream directly to the client
-    return new Response(completionRes.body, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
+
+    if (!completionRes.ok) {
+      const errText = await completionRes.text().catch(() => completionRes.statusText);
+      console.error('[POST /api/ai] NVIDIA error:', errText);
+      return NextResponse.json(
+        { success: false, error: `AI service error: ${completionRes.status}` },
+        { status: 502 }
+      );
+    }
+
+    const completion = await completionRes.json();
+    const aiReply = completion.choices?.[0]?.message?.content;
+
+    if (!aiReply) {
+      return NextResponse.json(
+        { success: false, error: 'AI returned an empty response' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true, reply: aiReply });
+
   } catch (error) {
     console.error('[POST /api/ai]', error);
     return NextResponse.json(
@@ -155,3 +168,4 @@ ${stepContext ? `\nCURRENT STEP:\n${stepContext}` : ''}`;
     );
   }
 }
+
