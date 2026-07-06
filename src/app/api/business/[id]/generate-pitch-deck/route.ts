@@ -69,44 +69,45 @@ Initial Capital: $${business.initialCapital}
           messages: [
             {
               role: 'system',
-              content: `You are an elite VC pitch deck expert. ${langInstructions[lang]}
+              content: `You are a world-class venture capital pitch deck expert who has helped startups raise millions. ${langInstructions[lang]}
 
-Generate a 10-slide investor pitch deck for the startup below.
-CRITICAL: You MUST be extremely concise. Max 15 words per slide. Use short, punchy bullet points.
-Return ONLY valid JSON — no markdown, no text outside JSON.
+Generate a highly professional, comprehensive 10-slide investor pitch deck for the startup provided. 
+Your output MUST be a valid JSON object. Do not wrap the JSON in markdown code blocks or add any conversational text.
 
-Format:
+Format requirements:
 {
   "slides": [
     {
       "slideNumber": 1,
-      "title": "Short title",
-      "content": "• Short bullet 1\n• Short bullet 2",
-      "designNote": "1-2 words visual direction"
+      "title": "Compelling Slide Title",
+      "content": "• Detailed, persuasive bullet point 1 with actionable insights\\n• Data-driven bullet point 2\\n• Compelling bullet point 3",
+      "designNote": "Detailed instructions on what visuals, charts, or metrics should accompany this slide to maximize impact."
     }
   ]
 }
 
-The 10 slides:
-1. Title
-2. Problem
-3. Solution
-4. Market Size
-5. Business Model
-6. Go-to-Market
-7. Competitive Advantage
-8. Product/Tech
-9. Team
-10. The Ask`
+The 10 slides MUST follow this structure and include substantial, compelling content:
+1. Title Slide: Company name, impactful tagline, and founder vision.
+2. The Problem: A deep dive into the specific pain points, backed by realistic market assumptions or data.
+3. The Solution: Exactly how this product solves the problem uniquely and better than anyone else.
+4. Market Size (TAM/SAM/SOM): Realistic market sizing, target demographic, and total addressable opportunity.
+5. Business Model: Clear explanation of how the company makes money, pricing strategy, and unit economics.
+6. Go-to-Market Strategy: How the startup will acquire its first 1,000 to 10,000 customers (channels, tactics).
+7. Competitive Advantage: The "Moat" — why this startup wins against direct and indirect competitors.
+8. Product/Technology: Key features, proprietary tech, or unique user experience highlights.
+9. The Team: Why the founders and key members are uniquely positioned to execute this vision.
+10. The Ask: Specific funding amount required, exact use of funds (e.g., 40% R&D, 40% Marketing, 20% Ops), and the major milestones this funding will unlock.
+
+CRITICAL: Use sophisticated investor terminology (e.g., CAC, LTV, churn, MVP, scale). Make the content dense, actionable, and extremely professional.`
             },
             {
               role: 'user',
               content: `Generate pitch deck for:\n\n${businessContext}\n\nExecution plan:\n${planContext}`,
             },
           ],
-          temperature: 0.65,
+          temperature: 0.7,
           top_p: 0.9,
-          max_tokens: 1500,
+          max_tokens: 4096,
         })
       });
     } finally {
