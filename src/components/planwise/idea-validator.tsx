@@ -172,16 +172,35 @@ export function IdeaValidatorView() {
 
     try {
       const token = localStorage.getItem('tashyeed_token')
-      const res = await fetch(`/api/business/${currentBusiness.id}/generate-plan`, {
+      
+      // 1. Generate Plan
+      const resPlan = await fetch(`/api/business/${currentBusiness.id}/generate-plan`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       })
+      if (!resPlan.ok) throw new Error("Failed to generate plan")
       
-      if (!res.ok) throw new Error("Failed to generate plan")
-      
+      // 2. Generate Pitch Deck if score >= 40
+      let generatedPitchDeck = false;
+      if (successScore !== null && successScore >= 40) {
+        const resPitch = await fetch(`/api/business/${currentBusiness.id}/generate-pitch-deck`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ language: useAppStore.getState().language })
+        })
+        if (resPitch.ok) {
+          generatedPitchDeck = true;
+        }
+      }
+
       await useAppStore.getState().refreshBusiness()
-      // Switch to the planner view to see the new plan!
-      useAppStore.getState().setActiveView('planner')
+      
+      // Redirect to Pitch Deck if generated, else Planner
+      if (generatedPitchDeck) {
+        useAppStore.getState().setActiveView('pitch-deck' as any)
+      } else {
+        useAppStore.getState().setActiveView('planner')
+      }
     } catch (error) {
       console.error(error)
       alert("An error occurred while generating the plan.")

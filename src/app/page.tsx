@@ -28,6 +28,7 @@ const AnalysisView = dynamic(() => import("@/components/planwise/analysis").then
 const SettingsView = dynamic(() => import("@/components/planwise/settings").then(m => ({ default: m.SettingsView })), { ssr: false })
 const ChatPanel = dynamic(() => import("@/components/planwise/chat-panel").then(m => ({ default: m.AIChatPanel })), { ssr: false })
 const IdeaValidatorView = dynamic(() => import("@/components/planwise/idea-validator").then(m => ({ default: m.IdeaValidatorView })), { ssr: false })
+const PitchDeckView = dynamic(() => import("@/components/planwise/pitch-deck").then(m => ({ default: m.PitchDeckView })), { ssr: false })
 
 // ─── MAIN APP ──────────────────────────────────────────
 export default function TashyeedApp() {
@@ -147,6 +148,7 @@ export default function TashyeedApp() {
                   {activeView === "notifications" && <NotificationsView />}
                   {activeView === "analysis" && <AnalysisView />}
                   {activeView === "idea-validator" && <IdeaValidatorView />}
+                  {activeView === "pitch-deck" && <PitchDeckView />}
                   {activeView === "settings" && <SettingsView onAddBusiness={() => setNewBizOpen(true)} onSignOut={handleSignOut} />}
                 </motion.div>
               </AnimatePresence>

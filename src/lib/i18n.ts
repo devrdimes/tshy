@@ -45,6 +45,16 @@ export const dictionary: Translations = {
     'common.save': 'Save',
     'common.create': 'Create',
     'common.loading': 'Loading...',
+    
+    // Pitch Deck
+    'nav.pitchDeck': 'Pitch Deck',
+    'pitchDeck.title': 'AI Pitch Deck',
+    'pitchDeck.download': 'Download PDF',
+    'pitchDeck.generating': 'Generating PDF...',
+    'pitchDeck.empty': 'No Pitch Deck Yet',
+    'pitchDeck.emptyDesc': 'Validate your idea to automatically generate a professional pitch deck.',
+    'pitchDeck.validate': 'Validate Idea',
+    'pitchDeck.designNote': 'Design Note',
   },
   ar: {
     // Sidebar
@@ -88,6 +98,16 @@ export const dictionary: Translations = {
     'common.save': 'حفظ',
     'common.create': 'إنشاء',
     'common.loading': 'جاري التحميل...',
+    
+    // Pitch Deck
+    'nav.pitchDeck': 'عرض تقديمي',
+    'pitchDeck.title': 'العرض التقديمي الذكي',
+    'pitchDeck.download': 'تحميل PDF',
+    'pitchDeck.generating': 'جارٍ إنشاء PDF...',
+    'pitchDeck.empty': 'لا يوجد عرض تقديمي بعد',
+    'pitchDeck.emptyDesc': 'قيّم فكرتك لتوليد عرض تقديمي احترافي تلقائياً.',
+    'pitchDeck.validate': 'تقييم الفكرة',
+    'pitchDeck.designNote': 'ملاحظة تصميم',
   },
   fr: {
     // Sidebar
@@ -131,6 +151,16 @@ export const dictionary: Translations = {
     'common.save': 'Enregistrer',
     'common.create': 'Créer',
     'common.loading': 'Chargement...',
+    
+    // Pitch Deck
+    'nav.pitchDeck': 'Pitch Deck',
+    'pitchDeck.title': 'Pitch Deck IA',
+    'pitchDeck.download': 'Télécharger PDF',
+    'pitchDeck.generating': 'Génération du PDF...',
+    'pitchDeck.empty': 'Pas encore de Pitch Deck',
+    'pitchDeck.emptyDesc': 'Validez votre idée pour générer automatiquement un pitch deck professionnel.',
+    'pitchDeck.validate': 'Valider l\'idée',
+    'pitchDeck.designNote': 'Note de design',
   }
 }
 

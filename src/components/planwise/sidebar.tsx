@@ -7,7 +7,7 @@ import { useTranslation } from "@/lib/i18n"
 import { APP_CONFIG, INDUSTRIES, STAGES, REVENUE_MODELS, TARGET_MARKETS } from "@/lib/constants"
 import { createBusiness } from "@/lib/api"
 import {
-  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, Settings, ChevronRight, ChevronLeft, Plus, Building2, Menu, CheckCircle2, Loader2, Zap, Rocket, MessageSquare, BarChart3, FlaskConical, Globe
+  LayoutDashboard, ListTodo, DollarSign, Flag, Bell, Settings, ChevronRight, ChevronLeft, Plus, Building2, Menu, CheckCircle2, Loader2, Zap, Rocket, MessageSquare, BarChart3, FlaskConical, Globe, Presentation
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -243,6 +243,7 @@ export function Sidebar({ newBizOpen, setNewBizOpen }: { newBizOpen: boolean; se
     { id: "milestones", label: t('nav.milestones'), icon: Flag, description: "Key achievements" },
     { id: "analysis", label: t('nav.analysis'), icon: BarChart3, description: "SWOT & insights" },
     { id: "idea-validator", label: "Idea Validator", icon: FlaskConical, description: "AI idea scoring" },
+    { id: "pitch-deck", label: t('nav.pitchDeck'), icon: Presentation, description: "AI pitch deck" },
     { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount, description: "Alerts & updates" },
     { id: "settings", label: t('nav.settings'), icon: Settings, description: "Preferences" },
   ]

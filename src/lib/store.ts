@@ -38,6 +38,7 @@ export interface Business {
   currentStep: number
   totalSteps: number
   completed: boolean
+  pitchDeck: string
   createdAt: string
   planSteps: PlanStep[]
   milestones: Milestone[]
@@ -173,18 +174,7 @@ interface AppState {
   // UI State
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
-  activeView:
-    | 'dashboard'
-    | 'planner'
-    | 'tasks'
-    | 'financials'
-    | 'milestones'
-    | 'notifications'
-    | 'analysis'
-    | 'idea-validator'
-    | 'settings'
-    | 'onboarding'
-    | 'landing'
+  activeView: 'landing' | 'onboarding' | 'dashboard' | 'planner' | 'tasks' | 'financials' | 'milestones' | 'notifications' | 'analysis' | 'settings' | 'idea-validator' | 'pitch-deck'
   setActiveView: (view: AppState['activeView']) => void
   chatOpen: boolean
   setChatOpen: (open: boolean) => void
