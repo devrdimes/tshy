@@ -124,7 +124,7 @@ Be constructive but evidence-based. Do NOT make things up. Short, energetic, spe
       callBrain(
         'https://integrate.api.nvidia.com/v1/chat/completions', // Update base URL if not on NVIDIA
         glmApiKey,
-        'z-ai/glm-5.2', // Model name for Brain 1
+        'meta/llama-3.1-8b-instruct', // Model name for Brain 1
         brain1Prompt,
         `Analyze this startup idea:\n\n${answersText}`,
         0.8
@@ -134,7 +134,7 @@ Be constructive but evidence-based. Do NOT make things up. Short, energetic, spe
       callBrain(
         'https://integrate.api.nvidia.com/v1/chat/completions', // Update base URL if not on NVIDIA
         kimiApiKey,
-        'kimi-2.6', // Model name for Brain 2
+        'meta/llama-3.1-8b-instruct', // Model name for Brain 2
         brain2Prompt,
         `Analyze this startup idea:\n\n${answersText}`,
         0.7
@@ -252,7 +252,7 @@ Be specific to THIS idea. Generic advice is unacceptable. This report represents
         'Authorization': `Bearer ${glmApiKey}`
       },
       body: JSON.stringify({
-        model: 'z-ai/glm-5.2', // using GLM for the final synthesis
+        model: 'meta/llama-3.1-8b-instruct', // using fast model for the final synthesis
         messages: [
           { role: 'assistant', content: synthesisPrompt },
           { role: 'user', content: 'Synthesize the two brain analyses into the final comprehensive dual-brain validation report now.' }

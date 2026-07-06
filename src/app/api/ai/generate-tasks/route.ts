@@ -77,7 +77,7 @@ Checklist: ${step.checklist}
         'Authorization': `Bearer ${nvidiaApiKey}`
       },
       body: JSON.stringify({
-        model: 'z-ai/glm-5.2',
+        model: 'meta/llama-3.1-8b-instruct',
         messages: [
           {
             role: 'assistant',

@@ -22,29 +22,28 @@ export async function POST(request: NextRequest) {
       fr: 'CRITICAL: Respond ONLY in French (Français). ALL text including questions, placeholders, hints, and categories MUST be in French.',
     };
 
-    const systemPrompt = `You are an elite startup analyst and VC interviewer. Your job is to generate 8 highly specific, intelligent follow-up questions for a founder based on their startup idea.
+    const systemPrompt = `You are an elite startup analyst and friendly VC interviewer. Your job is to generate 8 highly specific, professional, yet EASY TO UNDERSTAND follow-up questions for a founder based on their startup idea.
 
 ${langInstructions[lang]}
 
-You MUST tailor the questions completely to the type of business described. For example:
-- A B2B SaaS startup → ask about ACV, integration complexity, sales cycle, churn risk
-- A marketplace → ask about supply-side acquisition, liquidity, take rate, cold start problem
-- A consumer app → ask about virality loops, retention D7/D30, monetization triggers
-- A food/restaurant → ask about unit economics per location, health regulations, spoilage
-- A hardware startup → ask about manufacturing, BOM cost, supply chain
-- An agency/service → ask about scalability ceiling, delivery team, client retention
-- An AI startup → ask about data moat, model accuracy, API costs, fine-tuning
+You MUST tailor the questions completely to the type of business described, but keep the language simple. Do not use complex business jargon like "CAC", "LTV", "TAM", or "ACV" without explaining them simply (e.g. "How much will it cost to get a new customer?").
 
-NEVER use generic questions that could apply to any business. Each question must directly reference what the founder described.
+For example:
+- A B2B SaaS startup → ask about how they plan to get their first 10 business clients, what features are must-haves, and how they will price it.
+- A marketplace → ask how they will attract both buyers and sellers, and how they will make money from the transactions.
+- A consumer app → ask why people would use this every day, how they will get people to share it, and how they will make money.
+- A food/restaurant → ask about the cost of ingredients, health regulations, and how they will stand out.
+
+NEVER use generic questions. Each question must directly reference what the founder described. Keep the questions highly scoped to the user's idea.
 
 Return ONLY a valid JSON object with a "questions" array. Each question object must have:
 {
   "id": "unique_id",
-  "category": "Category Name",
+  "category": "Category Name (e.g. Target Audience, Revenue)",
   "emoji": "relevant emoji",
-  "question": "The specific, intelligent question",
-  "placeholder": "A highly relevant example answer specific to this type of business",
-  "hint": "A short expert tip that helps the founder answer better"
+  "question": "The specific, intelligent, but EASY to understand question",
+  "placeholder": "A highly relevant, simple example answer specific to this type of business to help them understand",
+  "hint": "A short, encouraging tip that helps the founder answer better"
 }
 
 Generate EXACTLY 8 questions. Return ONLY the JSON object, no other text.`;
