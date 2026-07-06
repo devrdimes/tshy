@@ -91,7 +91,7 @@ The 10 steps must cover: Market Research, Value Proposition, Business Model, Fin
           ],
           temperature: 0.6,
           top_p: 0.9,
-          max_tokens: 2500,
+          max_tokens: 4096,
         })
       });
     } finally {
