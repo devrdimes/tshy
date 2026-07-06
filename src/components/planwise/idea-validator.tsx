@@ -594,17 +594,12 @@ export function IdeaValidatorView() {
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="flex -space-x-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg ring-2 ring-background">
-              <Brain className="w-4 h-4 text-white" />
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg ring-2 ring-background">
-              <Brain className="w-4 h-4 text-white" />
-            </div>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+            <CheckCircle2 className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="font-bold text-foreground text-lg">Dual-Brain Validation Report</h2>
-            <p className="text-xs text-muted-foreground">GLM 5.2 + Kimi 2.6 · Synthesized by AI</p>
+            <h2 className="font-bold text-foreground text-lg">VC Validation Report</h2>
+            <p className="text-xs text-muted-foreground">Elite startup analysis · AI-generated</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
@@ -635,30 +630,50 @@ export function IdeaValidatorView() {
           </div>
         )}
 
-        {!streaming && successScore !== null && successScore > 40 && (
+        {!streaming && successScore !== null && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1 }}
-            className="mt-12 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20 rounded-2xl p-6 text-center"
+            className={`mt-12 border rounded-2xl p-6 text-center ${
+              successScore >= 40 
+                ? "bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border-violet-500/20" 
+                : "bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20"
+            }`}
           >
-            <div className="w-12 h-12 bg-violet-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-lg shadow-violet-500/30">
-              <Sparkles className="w-6 h-6" />
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-lg ${
+              successScore >= 40 ? "bg-violet-500 shadow-violet-500/30" : "bg-amber-500 shadow-amber-500/30"
+            }`}>
+              {successScore >= 40 ? <Sparkles className="w-6 h-6" /> : <Brain className="w-6 h-6" />}
             </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">Congratulations! 🎉</h3>
-            <p className="text-muted-foreground mb-6">
-              Your idea scored <strong>{successScore}%</strong>, which means it has strong potential.
-              Would you like our AI to automatically generate a comprehensive 10-step execution plan <strong>and</strong> a professional pitch deck?
-            </p>
+            
+            {successScore >= 40 ? (
+              <>
+                <h3 className="text-xl font-bold text-foreground mb-2">Congratulations! 🎉</h3>
+                <p className="text-muted-foreground mb-6">
+                  Your idea scored <strong>{successScore}%</strong>, which means it has strong potential.
+                  Would you like our AI to automatically generate a comprehensive 10-step execution plan <strong>and</strong> a professional pitch deck?
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-xl font-bold text-foreground mb-2">Tough Feedback, But Don't Give Up! 💡</h3>
+                <p className="text-muted-foreground mb-6">
+                  Your idea scored <strong>{successScore}%</strong>. It needs some refinement, but that's normal for early stages.
+                  We can generate a 10-step execution plan to help you pivot, test your assumptions, and improve this concept.
+                </p>
+              </>
+            )}
+
             <Button
               onClick={handleGeneratePlan}
               disabled={generatingPlan}
-              className="bg-violet-600 hover:bg-violet-700 text-white font-medium px-8"
+              className={`${successScore >= 40 ? "bg-violet-600 hover:bg-violet-700" : "bg-amber-600 hover:bg-amber-700"} text-white font-medium px-8`}
             >
               {generatingPlan ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating Plan &amp; Pitch Deck...</>
               ) : (
-                <><CheckCircle2 className="w-4 h-4 mr-2" /> Generate Plan &amp; Pitch Deck</>
+                <><CheckCircle2 className="w-4 h-4 mr-2" /> Continue: Generate Plan &amp; Pitch Deck</>
               )}
             </Button>
           </motion.div>

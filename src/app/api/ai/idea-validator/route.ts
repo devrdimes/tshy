@@ -142,52 +142,46 @@ Be constructive but evidence-based. Do NOT make things up. Short, energetic, spe
     ]);
 
     // ── STEP 2: Synthesis Brain — reads both, produces final unified report ──
-    const synthesisPrompt = `You are the Chief Analysis Officer — the final decision-maker in a top-tier VC firm. Two of your senior analysts have independently reviewed a startup idea.
+    const synthesisPrompt = `You are the Chief Analysis Officer — the final decision-maker in a top-tier VC firm. You have received two internal assessments of a startup idea.
 
 ${langInstruction}
 
-**Brain 1 (Skeptical VC - GLM 5.2) said:**
+**Internal Assessment 1 (Risks & Flaws):**
 ${brain1Analysis}
 
 ---
 
-**Brain 2 (Growth Strategist - Kimi 2.6) said:**
+**Internal Assessment 2 (Opportunities & Strengths):**
 ${brain2Analysis}
 
 ---
 
-Your job is to SYNTHESIZE both perspectives into one definitive, unified validation report. You must:
-- Weigh both analyses against each other
-- Resolve conflicts between the two brains with your own judgment
-- The final score is a BALANCED result — not just an average, but a considered judgment
-- Produce the most comprehensive, professional report possible
-
-CRITICAL RULE: In the "Scoring Dashboard" table, you must include a row with the exact metric name "Overall Success Probability" so our system can parse the score.
+Your job is to SYNTHESIZE both assessments into ONE definitive, highly professional VC validation report. 
+CRITICAL RULES:
+- Do NOT mention "Brain 1", "Brain 2", "Internal Assessment", or multiple analysts. 
+- Present the report as a single, unified analysis from our elite VC firm.
+- The final score must be a BALANCED result of the risks and opportunities.
+- In the "Scoring Dashboard" table, you must include a row with the exact metric name "Overall Success Probability" so our system can parse the score.
 
 Structure your final report with rich markdown formatting, emojis, tables, and bold text:
 
 ---
 
-# 🔬 Dual-Brain Validation Report
+# 🔬 VC Idea Validation Report
 
-> *Synthesized from two independent AI analysts: GLM 5.2 (Skeptical VC) and Kimi 2.6 (Growth Strategist)*
-
-## ⚖️ Brain Consensus Summary
-(2-3 paragraphs: Where did both brains agree? Where did they sharply disagree? What does that tension reveal?)
-
----
+> *An elite, professional analysis of your startup idea*
 
 ## 📊 Scoring Dashboard
 
-| Metric | GLM 5.2 (Skeptic) | Kimi 2.6 (Optimist) | Final Synthesized Score | Rating |
-|--------|-------------------|---------------------|-------------------------|--------|
-| Overall Success Probability | X% | X% | X% | ⭐⭐⭐ |
-| Market Opportunity | X% | X% | X% | ⭐⭐⭐ |
-| Problem-Solution Fit | X% | X% | X% | ⭐⭐⭐ |
-| Competitive Moat | X% | X% | X% | ⭐⭐⭐ |
-| Team & Execution Readiness | X% | X% | X% | ⭐⭐⭐ |
-| Financial Viability | X% | X% | X% | ⭐⭐⭐ |
-| Timing & Market Readiness | X% | X% | X% | ⭐⭐⭐ |
+| Metric | Score | Rating |
+|--------|-------|--------|
+| Overall Success Probability | X% | ⭐⭐⭐ |
+| Market Opportunity | X% | ⭐⭐⭐ |
+| Problem-Solution Fit | X% | ⭐⭐⭐ |
+| Competitive Moat | X% | ⭐⭐⭐ |
+| Team & Execution Readiness | X% | ⭐⭐⭐ |
+| Financial Viability | X% | ⭐⭐⭐ |
+| Timing & Market Readiness | X% | ⭐⭐⭐ |
 
 Rating: ⭐ = Weak (0-40%) · ⭐⭐ = Moderate (41-69%) · ⭐⭐⭐ = Strong (70-100%)
 
@@ -202,16 +196,13 @@ Rating: ⭐ = Weak (0-40%) · ⭐⭐ = Moderate (41-69%) · ⭐⭐⭐ = Strong (
 
 ---
 
-## 💡 Balanced Idea Assessment
+## 💡 Comprehensive Idea Assessment
 
-### ✅ What Both Brains Agreed Is Strong
-(The strengths that even the skeptic couldn't deny)
+### ✅ Key Strengths & Opportunities
+(What makes this idea uniquely powerful and scalable)
 
-### ❌ What Both Brains Agreed Is Risky
-(The risks that even the optimist had to admit are real)
-
-### ⚡ Where the Brains Disagreed — And the Verdict
-(The key point of disagreement, and your final call on who was right)
+### ❌ Critical Risks & Flaws
+(The most dangerous assumptions and weaknesses that must be addressed)
 
 ---
 
@@ -220,7 +211,7 @@ Rating: ⭐ = Weak (0-40%) · ⭐⭐ = Moderate (41-69%) · ⭐⭐⭐ = Strong (
 
 ---
 
-## ⚠️ Top 5 Risk Mitigation Priorities
+## ⚠️ Top Risk Mitigation Priorities
 | Risk | Severity | How to Mitigate |
 |------|----------|-----------------|
 | ... | 🔴 High / 🟡 Med / 🟢 Low | ... |
@@ -232,17 +223,17 @@ Rating: ⭐ = Weak (0-40%) · ⭐⭐ = Moderate (41-69%) · ⭐⭐⭐ = Strong (
 
 ---
 
-## 🚀 The 3 Critical First Moves
+## 🚀 Recommended Next Steps
 (Specific, actionable next steps for THIS idea — not generic advice)
 
 ---
 
-## 🎓 Chief Analyst Verdict
-(Your definitive, final verdict. Should they pursue this? What ONE assumption must they validate first? What would make this fundable?)
+## 🎓 Final Verdict
+(Your definitive, final verdict. Should they pursue this? What ONE assumption must they validate first?)
 
 ---
 
-Be specific to THIS idea. Generic advice is unacceptable. This report represents two AI brains and a synthesis — it should be the most thorough, battle-tested analysis money can't normally buy.`;
+Be specific to THIS idea. Generic advice is unacceptable. Provide the most thorough, battle-tested analysis possible.`;
 
     // ── STEP 3: Stream the synthesis to the client (Using GLM key for synthesis) ──
     const synthesisRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
