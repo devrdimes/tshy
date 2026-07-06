@@ -519,27 +519,68 @@ export function IdeaValidatorView() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center max-w-md"
+          className="text-center max-w-lg w-full"
         >
-          <div className="relative w-24 h-24 mx-auto mb-8">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 animate-pulse" />
-            <div className="absolute inset-2 rounded-full bg-card flex items-center justify-center">
-              <Brain className="w-10 h-10 text-violet-600 animate-bounce" />
-            </div>
+          {/* Dual brain animation */}
+          <div className="flex items-center justify-center gap-6 mb-10">
+            {/* Brain 1 */}
+            <motion.div
+              animate={{ scale: [1, 1.08, 1], opacity: [0.8, 1, 0.8] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              className="flex flex-col items-center"
+            >
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-xl shadow-red-500/30">
+                <Brain className="w-10 h-10 text-white" />
+              </div>
+              <span className="text-xs font-bold text-red-600 mt-2">Skeptical VC</span>
+              <span className="text-[10px] text-muted-foreground">Finding flaws...</span>
+            </motion.div>
+
+            {/* Sync icon */}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg"
+            >
+              <Sparkles className="w-5 h-5 text-white" />
+            </motion.div>
+
+            {/* Brain 2 */}
+            <motion.div
+              animate={{ scale: [1, 1.08, 1], opacity: [0.8, 1, 0.8] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              className="flex flex-col items-center"
+            >
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-500/30">
+                <Brain className="w-10 h-10 text-white" />
+              </div>
+              <span className="text-xs font-bold text-emerald-600 mt-2">Growth Strategist</span>
+              <span className="text-[10px] text-muted-foreground">Finding opportunities...</span>
+            </motion.div>
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-3">Analyzing Your Idea...</h2>
-          <p className="text-muted-foreground text-sm mb-6">Our AI is conducting a full VC-grade analysis. This may take 15-30 seconds.</p>
-          <div className="space-y-3">
-            {["Researching your market...", "Evaluating competitors...", "Calculating success probability...", "Writing your report..."].map((step, i) => (
+
+          <h2 className="text-2xl font-bold text-foreground mb-2">Two Brains Are Thinking...</h2>
+          <p className="text-muted-foreground text-sm mb-8">
+            Your idea is being independently analyzed by two AI experts simultaneously, then synthesized into one powerful report.
+          </p>
+
+          <div className="bg-card border border-border rounded-2xl p-5 text-left space-y-4">
+            {[
+              { color: "text-red-500", label: "Brain 1 (Skeptic):", step: "Stress-testing your assumptions...", delay: 0 },
+              { color: "text-emerald-500", label: "Brain 2 (Optimist):", step: "Mapping your growth opportunities...", delay: 0.5 },
+              { color: "text-violet-500", label: "Synthesis:", step: "Weighing both perspectives for final verdict...", delay: 1.2 },
+              { color: "text-amber-500", label: "Report:", step: "Writing your dual-brain analysis...", delay: 2 },
+            ].map(({ color, label, step, delay }) => (
               <motion.div
-                key={step}
+                key={label}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.8 }}
-                className="flex items-center gap-3 text-sm text-muted-foreground"
+                transition={{ delay }}
+                className="flex items-center gap-3 text-sm"
               >
-                <Loader2 className="w-4 h-4 animate-spin text-violet-500 shrink-0" />
-                {step}
+                <Loader2 className={`w-4 h-4 animate-spin shrink-0 ${color}`} />
+                <span className={`font-semibold ${color}`}>{label}</span>
+                <span className="text-muted-foreground">{step}</span>
               </motion.div>
             ))}
           </div>
@@ -553,12 +594,17 @@ export function IdeaValidatorView() {
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
-            <CheckCircle2 className="w-5 h-5 text-white" />
+          <div className="flex -space-x-2">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg ring-2 ring-background">
+              <Brain className="w-4 h-4 text-white" />
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg ring-2 ring-background">
+              <Brain className="w-4 h-4 text-white" />
+            </div>
           </div>
           <div>
-            <h2 className="font-bold text-foreground text-lg">Your Validation Report</h2>
-            <p className="text-xs text-muted-foreground">AI-powered · VC-grade analysis · Tailored to your idea</p>
+            <h2 className="font-bold text-foreground text-lg">Dual-Brain Validation Report</h2>
+            <p className="text-xs text-muted-foreground">Skeptical VC + Growth Strategist · Synthesized by AI</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
