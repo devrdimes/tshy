@@ -140,22 +140,40 @@ export function IdeaValidatorView() {
 
   const handleGeneratePlan = async () => {
     setGeneratingPlan(true)
-    setPlanStep("Looking up your business...")
+    setPlanStep("Saving your idea as a new business...")
 
-    const { currentBusiness } = useAppStore.getState()
-    if (!currentBusiness) {
-      alert("No business found. Please make sure you are logged in and have a business created.")
+    const token = localStorage.getItem('tashyeed_token')
+    
+    // Create a new business for this validated idea so it never gets lost!
+    let targetBusinessId = ""
+    try {
+      const resCreate = await fetch('/api/business', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          name: ideaText.split(' ').slice(0, 5).join(' ') + '...', // short name from idea
+          description: ideaText,
+          industry: 'Technology',
+          stage: 'idea',
+        })
+      });
+      const createData = await resCreate.json();
+      if (!resCreate.ok || !createData.success) {
+        throw new Error("Failed to save idea as a business.")
+      }
+      targetBusinessId = createData.data.id
+      await useAppStore.getState().setCurrentBusiness(createData.data)
+    } catch (e: any) {
+      alert(e.message)
       setGeneratingPlan(false)
       setPlanStep("")
       return
     }
 
-    const token = localStorage.getItem('tashyeed_token')
-
     try {
       // ── Step 1: Generate execution plan ─────────────────────
       setPlanStep("Generating your 10-step execution plan...")
-      const resPlan = await fetch(`/api/business/${currentBusiness.id}/generate-plan`, {
+      const resPlan = await fetch(`/api/business/${targetBusinessId}/generate-plan`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       })
@@ -169,7 +187,7 @@ export function IdeaValidatorView() {
       let generatedPitchDeck = false
       if (successScore !== null && successScore >= 40) {
         setPlanStep("Building your professional pitch deck...")
-        const resPitch = await fetch(`/api/business/${currentBusiness.id}/generate-pitch-deck`, {
+        const resPitch = await fetch(`/api/business/${targetBusinessId}/generate-pitch-deck`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ language: useAppStore.getState().language })
