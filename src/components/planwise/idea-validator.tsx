@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -49,6 +49,7 @@ export function IdeaValidatorView() {
   const [streaming, setStreaming] = useState(false)
   const [successScore, setSuccessScore] = useState<number | null>(null)
   const [generatingPlan, setGeneratingPlan] = useState(false)
+  const [planStep, setPlanStep] = useState<string>("") // which step of generation we're on
   const [questionError, setQuestionError] = useState("")
   const reportRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -139,34 +140,50 @@ export function IdeaValidatorView() {
 
   const handleGeneratePlan = async () => {
     setGeneratingPlan(true)
+    setPlanStep("Looking up your business...")
+
     const { currentBusiness } = useAppStore.getState()
     if (!currentBusiness) {
-      alert("No business context found. Please ensure you are logged in properly.")
+      alert("No business found. Please make sure you are logged in and have a business created.")
       setGeneratingPlan(false)
+      setPlanStep("")
       return
     }
 
-    try {
-      const token = localStorage.getItem('tashyeed_token')
+    const token = localStorage.getItem('tashyeed_token')
 
-      // 1. Generate Plan
+    try {
+      // ── Step 1: Generate execution plan ─────────────────────
+      setPlanStep("Generating your 10-step execution plan...")
       const resPlan = await fetch(`/api/business/${currentBusiness.id}/generate-plan`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
       })
-      if (!resPlan.ok) throw new Error("Failed to generate plan")
 
-      // 2. Generate Pitch Deck if score >= 40
-      let generatedPitchDeck = false;
+      const planData = await resPlan.json().catch(() => ({ success: false }))
+      if (!resPlan.ok || !planData.success) {
+        throw new Error(planData.error || 'Plan generation failed — please try again.')
+      }
+
+      // ── Step 2: Generate pitch deck if score >= 40 ───────────
+      let generatedPitchDeck = false
       if (successScore !== null && successScore >= 40) {
+        setPlanStep("Building your professional pitch deck...")
         const resPitch = await fetch(`/api/business/${currentBusiness.id}/generate-pitch-deck`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ language: useAppStore.getState().language })
         })
-        if (resPitch.ok) generatedPitchDeck = true;
+        const pitchData = await resPitch.json().catch(() => ({ success: false }))
+        if (resPitch.ok && pitchData.success) {
+          generatedPitchDeck = true
+        } else {
+          console.warn('Pitch deck generation failed, continuing to planner:', pitchData.error)
+        }
       }
 
+      // ── Step 3: Refresh and navigate ────────────────────────
+      setPlanStep("Finalizing everything...")
       await useAppStore.getState().refreshBusiness()
 
       if (generatedPitchDeck) {
@@ -174,11 +191,13 @@ export function IdeaValidatorView() {
       } else {
         useAppStore.getState().setActiveView('planner')
       }
-    } catch (error) {
-      console.error(error)
-      alert("An error occurred while generating the plan.")
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+      console.error('[handleGeneratePlan]', msg)
+      alert(`Error: ${msg}`)
     } finally {
       setGeneratingPlan(false)
+      setPlanStep("")
     }
   }
 
@@ -642,40 +661,60 @@ export function IdeaValidatorView() {
             }`}
           >
             <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-lg ${
-              successScore >= 40 ? "bg-violet-500 shadow-violet-500/30" : "bg-amber-500 shadow-amber-500/30"
+              generatingPlan ? "bg-violet-500 shadow-violet-500/30 animate-pulse"
+              : successScore >= 40 ? "bg-violet-500 shadow-violet-500/30" : "bg-amber-500 shadow-amber-500/30"
             }`}>
-              {successScore >= 40 ? <Sparkles className="w-6 h-6" /> : <Brain className="w-6 h-6" />}
+              {generatingPlan ? <Loader2 className="w-6 h-6 animate-spin" /> : successScore >= 40 ? <Sparkles className="w-6 h-6" /> : <Brain className="w-6 h-6" />}
             </div>
             
-            {successScore >= 40 ? (
+            {!generatingPlan && successScore >= 40 && (
               <>
                 <h3 className="text-xl font-bold text-foreground mb-2">Congratulations! 🎉</h3>
                 <p className="text-muted-foreground mb-6">
                   Your idea scored <strong>{successScore}%</strong>, which means it has strong potential.
-                  Would you like our AI to automatically generate a comprehensive 10-step execution plan <strong>and</strong> a professional pitch deck?
-                </p>
-              </>
-            ) : (
-              <>
-                <h3 className="text-xl font-bold text-foreground mb-2">Tough Feedback, But Don't Give Up! 💡</h3>
-                <p className="text-muted-foreground mb-6">
-                  Your idea scored <strong>{successScore}%</strong>. It needs some refinement, but that's normal for early stages.
-                  We can generate a 10-step execution plan to help you pivot, test your assumptions, and improve this concept.
+                  Let our AI generate a comprehensive 10-step execution plan <strong>and</strong> a professional investor pitch deck.
                 </p>
               </>
             )}
 
-            <Button
-              onClick={handleGeneratePlan}
-              disabled={generatingPlan}
-              className={`${successScore >= 40 ? "bg-violet-600 hover:bg-violet-700" : "bg-amber-600 hover:bg-amber-700"} text-white font-medium px-8`}
-            >
-              {generatingPlan ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating Plan &amp; Pitch Deck...</>
-              ) : (
-                <><CheckCircle2 className="w-4 h-4 mr-2" /> Continue: Generate Plan &amp; Pitch Deck</>
-              )}
-            </Button>
+            {!generatingPlan && successScore < 40 && (
+              <>
+                <h3 className="text-xl font-bold text-foreground mb-2">Don&apos;t Give Up! 💡</h3>
+                <p className="text-muted-foreground mb-6">
+                  Your idea scored <strong>{successScore}%</strong>. Every great idea needs refinement.
+                  We&apos;ll generate a 10-step plan to help you pivot, validate your assumptions, and strengthen the concept.
+                </p>
+              </>
+            )}
+
+            {generatingPlan ? (
+              <div className="space-y-4">
+                <p className="text-base font-semibold text-foreground">{planStep || "Working on it..."}</p>
+                <div className="flex justify-center gap-2">
+                  {[
+                    { label: "Setup", done: true },
+                    { label: "Plan", done: planStep.toLowerCase().includes("plan") || planStep.toLowerCase().includes("pitch") || planStep.toLowerCase().includes("final") },
+                    { label: "Pitch Deck", done: planStep.toLowerCase().includes("pitch") || planStep.toLowerCase().includes("final") },
+                    { label: "Done", done: planStep.toLowerCase().includes("final") },
+                  ].map(({ label, done }) => (
+                    <div key={label} className="flex flex-col items-center gap-1">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500 ${done ? "bg-violet-500 text-white shadow-md shadow-violet-500/30" : "bg-muted text-muted-foreground"}`}>
+                        {done ? "✓" : "·"}
+                      </div>
+                      <span className={`text-[10px] font-medium ${done ? "text-violet-500" : "text-muted-foreground"}`}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">Please wait — this takes about 30-60 seconds</p>
+              </div>
+            ) : (
+              <Button
+                onClick={handleGeneratePlan}
+                className={`${successScore >= 40 ? "bg-violet-600 hover:bg-violet-700" : "bg-amber-600 hover:bg-amber-700"} text-white font-medium px-8 gap-2`}
+              >
+                <CheckCircle2 className="w-4 h-4" /> Generate Plan &amp; Pitch Deck
+              </Button>
+            )}
           </motion.div>
         )}
       </div>

@@ -23,7 +23,6 @@ export async function POST(
       );
     }
 
-    // Build context for AI
     const businessContext = `
 Business Name: ${business.name}
 Description: ${business.description}
@@ -43,116 +42,118 @@ Monthly Burn Rate: $${business.monthlyBurnRate}
       );
     }
 
-    const completionRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${nvidiaApiKey}`
-      },
-      body: JSON.stringify({
-        model: 'meta/llama-3.1-8b-instruct',
-        messages: [
-          {
-            role: 'assistant',
-            content: `You are Tashyeed, an elite business planning expert and strategist. You generate comprehensive, actionable business plan steps for entrepreneurs. You must respond ONLY with valid JSON — no markdown, no explanations outside the JSON structure.
+    // Use AbortController so we don't hang forever
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 50000); // 50s timeout
 
-Generate exactly 10 business plan steps for the business described below. Each step must be detailed with practical, actionable guidance.
+    let completionRes: Response;
+    try {
+      completionRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${nvidiaApiKey}`
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: 'meta/llama-3.1-8b-instruct',
+          messages: [
+            {
+              role: 'assistant',
+              content: `You are an elite business strategist. Generate exactly 10 actionable business plan steps for the startup below. Be specific to this business — no generic advice.
 
-The 10 steps must cover these categories in order:
-1. Market Research — Analyze market, competitors, trends
-2. Value Proposition — Define unique value and differentiation
-3. Business Model — Design revenue model and cost structure
-4. Financial Planning — Create projections, budgets, funding strategy
-5. Legal Setup — Register business, protect IP, compliance
-6. Product Development — Build MVP, iterate, validate
-7. Marketing Strategy — Brand, channels, customer acquisition
-8. Operations — Infrastructure, processes, tools
-9. Team Building — Hire, culture, organizational structure
-10. Launch Strategy — Go-to-market, launch execution, growth
+Return ONLY a valid JSON object. No markdown, no text outside JSON.
 
-Return a JSON object with a "steps" array. Each step object must have:
+Format:
 {
-  "stepNumber": number (1-10),
-  "title": string,
-  "description": string (2-3 sentences explaining what this step involves),
-  "category": string (one of: research, strategy, financial, legal, product, marketing, operations, team),
-  "guidance": string (detailed guidance paragraph, 3-5 sentences with specific actions),
-  "tips": string (expert AI tip, 2-3 sentences with insider advice),
-  "checklist": array of strings (5-7 specific checklist items),
-  "resources": array of strings (3-5 recommended resources, tools, or references),
-  "estimatedDays": number (realistic estimate based on the business type)
+  "steps": [
+    {
+      "stepNumber": 1,
+      "title": "Step title",
+      "description": "2 sentences what this step is about",
+      "category": "research|strategy|financial|legal|product|marketing|operations|team",
+      "guidance": "Specific 2-3 sentence guidance for this exact business",
+      "tips": "1-2 sentence expert tip",
+      "checklist": ["item 1", "item 2", "item 3", "item 4", "item 5"],
+      "resources": ["Tool/resource 1", "Tool/resource 2", "Tool/resource 3"],
+      "estimatedDays": 14
+    }
+  ]
 }
 
-IMPORTANT: Tailor every step specifically to the business's industry, stage, and context. Generic advice is unacceptable. Return ONLY the JSON object, no other text.`,
-          },
-          {
-            role: 'user',
-            content: `Generate a comprehensive 10-step business plan for:\n\n${businessContext}`,
-          },
-        ],
-        temperature: 0.7,
-        top_p: 0.9,
-        max_tokens: 3000
-      })
-    });
+The 10 steps must cover: Market Research, Value Proposition, Business Model, Financial Planning, Legal Setup, Product Development, Marketing Strategy, Operations, Team Building, Launch Strategy. Tailor each step to the specific business context.`,
+            },
+            {
+              role: 'user',
+              content: `Generate the 10-step plan for:\n\n${businessContext}`,
+            },
+          ],
+          temperature: 0.6,
+          top_p: 0.9,
+          max_tokens: 2500,
+        })
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!completionRes.ok) {
-       throw new Error(`NVIDIA API error: ${completionRes.statusText}`);
+      const errText = await completionRes.text().catch(() => completionRes.statusText);
+      throw new Error(`AI API error: ${completionRes.status} — ${errText}`);
     }
 
     const completion = await completionRes.json();
-    const responseText = completion.choices[0]?.message?.content;
+    const responseText = completion.choices?.[0]?.message?.content;
+
     if (!responseText) {
-      return NextResponse.json(
-        { success: false, error: 'AI failed to generate plan' },
-        { status: 500 }
-      );
+      throw new Error('AI returned empty response');
     }
 
-    // Parse AI response
+    // Parse — try to extract JSON even if there's surrounding text
     let parsedSteps;
     try {
-      // Try to extract JSON from the response (handle potential markdown wrapping)
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('No JSON found in response');
       const parsed = JSON.parse(jsonMatch[0]);
       parsedSteps = parsed.steps || parsed;
     } catch {
-      console.error('[generate-plan] Failed to parse AI response:', responseText);
-      return NextResponse.json(
-        { success: false, error: 'Failed to parse AI-generated plan' },
-        { status: 500 }
-      );
+      // Last resort: try raw parse
+      try {
+        const parsed = JSON.parse(responseText);
+        parsedSteps = parsed.steps || parsed;
+      } catch {
+        console.error('[generate-plan] Failed to parse:', responseText.substring(0, 500));
+        throw new Error('Failed to parse AI-generated plan. Please try again.');
+      }
     }
 
     if (!Array.isArray(parsedSteps) || parsedSteps.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'AI generated invalid plan structure' },
-        { status: 500 }
-      );
+      throw new Error('AI generated an invalid plan structure. Please try again.');
     }
+
+    // Cap at 10 steps
+    const steps = parsedSteps.slice(0, 10);
 
     // Delete existing plan steps
     await db.planStep.deleteMany({ where: { businessId } });
 
-    // Create new plan steps from AI output
-    const stepData = parsedSteps.map((step: Record<string, unknown>, index: number) => ({
+    // Create new steps
+    const stepData = steps.map((step: Record<string, unknown>, index: number) => ({
       businessId,
-      stepNumber: step.stepNumber || index + 1,
+      stepNumber: Number(step.stepNumber) || index + 1,
       title: String(step.title || `Step ${index + 1}`),
       description: String(step.description || ''),
-      category: String(step.category || ''),
+      category: String(step.category || 'strategy'),
       status: index === 0 ? 'current' : 'locked',
       guidance: String(step.guidance || ''),
       tips: String(step.tips || ''),
-      checklist: JSON.stringify(step.checklist || []),
-      resources: JSON.stringify(step.resources || []),
+      checklist: JSON.stringify(Array.isArray(step.checklist) ? step.checklist : []),
+      resources: JSON.stringify(Array.isArray(step.resources) ? step.resources : []),
       estimatedDays: Number(step.estimatedDays) || 7,
     }));
 
     await db.planStep.createMany({ data: stepData });
 
-    // Update business totalSteps
     await db.business.update({
       where: { id: businessId },
       data: { totalSteps: stepData.length, currentStep: 1, completed: false },
@@ -167,10 +168,12 @@ IMPORTANT: Tailor every step specifically to the business's industry, stage, and
       success: true,
       data: { steps: newSteps, generatedBy: 'ai' },
     });
-  } catch (error) {
-    console.error('[POST /api/business/[id]/generate-plan]', error);
+
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to generate business plan';
+    console.error('[POST /api/business/[id]/generate-plan]', msg);
     return NextResponse.json(
-      { success: false, error: 'Failed to generate business plan' },
+      { success: false, error: msg },
       { status: 500 }
     );
   }
