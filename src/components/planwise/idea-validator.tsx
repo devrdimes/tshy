@@ -532,7 +532,7 @@ export function IdeaValidatorView() {
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-xl shadow-red-500/30">
                 <Brain className="w-10 h-10 text-white" />
               </div>
-              <span className="text-xs font-bold text-red-600 mt-2">Skeptical VC</span>
+              <span className="text-xs font-bold text-red-600 mt-2">GLM 5.2 (Skeptic)</span>
               <span className="text-[10px] text-muted-foreground">Finding flaws...</span>
             </motion.div>
 
@@ -554,7 +554,7 @@ export function IdeaValidatorView() {
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-500/30">
                 <Brain className="w-10 h-10 text-white" />
               </div>
-              <span className="text-xs font-bold text-emerald-600 mt-2">Growth Strategist</span>
+              <span className="text-xs font-bold text-emerald-600 mt-2">Kimi 2.6 (Optimist)</span>
               <span className="text-[10px] text-muted-foreground">Finding opportunities...</span>
             </motion.div>
           </div>
@@ -566,8 +566,8 @@ export function IdeaValidatorView() {
 
           <div className="bg-card border border-border rounded-2xl p-5 text-left space-y-4">
             {[
-              { color: "text-red-500", label: "Brain 1 (Skeptic):", step: "Stress-testing your assumptions...", delay: 0 },
-              { color: "text-emerald-500", label: "Brain 2 (Optimist):", step: "Mapping your growth opportunities...", delay: 0.5 },
+              { color: "text-red-500", label: "GLM 5.2 (Skeptic):", step: "Stress-testing your assumptions...", delay: 0 },
+              { color: "text-emerald-500", label: "Kimi 2.6 (Optimist):", step: "Mapping your growth opportunities...", delay: 0.5 },
               { color: "text-violet-500", label: "Synthesis:", step: "Weighing both perspectives for final verdict...", delay: 1.2 },
               { color: "text-amber-500", label: "Report:", step: "Writing your dual-brain analysis...", delay: 2 },
             ].map(({ color, label, step, delay }) => (
@@ -604,7 +604,7 @@ export function IdeaValidatorView() {
           </div>
           <div>
             <h2 className="font-bold text-foreground text-lg">Dual-Brain Validation Report</h2>
-            <p className="text-xs text-muted-foreground">Skeptical VC + Growth Strategist · Synthesized by AI</p>
+            <p className="text-xs text-muted-foreground">GLM 5.2 + Kimi 2.6 · Synthesized by AI</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">

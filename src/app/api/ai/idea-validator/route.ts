@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// ── Helper: call NVIDIA with a prompt, returns full text (non-streaming) ──
+// ── Helper: call an OpenAI-compatible endpoint, returns full text (non-streaming) ──
 async function callBrain(
+  apiUrl: string,
   apiKey: string,
+  modelName: string,
   systemPrompt: string,
   userMessage: string,
   temperature = 0.75
 ): Promise<string> {
-  const res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+  const res = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'meta/llama-3.1-8b-instruct',
+      model: modelName,
       messages: [
         { role: 'assistant', content: systemPrompt },
         { role: 'user', content: userMessage }
@@ -25,12 +27,17 @@ async function callBrain(
       stream: false
     })
   });
-  if (!res.ok) throw new Error(`Brain call failed: ${res.statusText}`);
+  
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Brain call failed (${modelName}): ${res.status} ${res.statusText} - ${errorText}`);
+  }
+  
   const data = await res.json();
   return data.choices[0]?.message?.content || '';
 }
 
-// POST /api/ai/idea-validator — Dual AI brain analysis
+// POST /api/ai/idea-validator — Dual AI brain analysis (GLM + Kimi)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -47,9 +54,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Answers are required' }, { status: 400 });
     }
 
-    const nvidiaApiKey = process.env.NVIDIA_API_KEY;
-    if (!nvidiaApiKey) {
-      return NextResponse.json({ success: false, error: 'NVIDIA API key is not configured' }, { status: 500 });
+    // ── API Keys for the Two Brains ──
+    // Brain 1 uses the primary key (GLM 5.2, already used in SaaS)
+    const glmApiKey = process.env.GLM_API_KEY || process.env.NVIDIA_API_KEY;
+    // Brain 2 uses the Kimi 2.6 key the user provided
+    const kimiApiKey = process.env.KIMI_API_KEY || process.env.NVIDIA_API_KEY;
+
+    if (!glmApiKey || !kimiApiKey) {
+      return NextResponse.json({ success: false, error: 'API keys for Brain 1 and Brain 2 are not configured' }, { status: 500 });
     }
 
     const answersText = Object.entries(answers)
@@ -58,9 +70,7 @@ export async function POST(request: NextRequest) {
 
     const langInstruction = langInstructions[lang];
 
-    // ── BRAIN 1: The Skeptical VC ─────────────────────────────────────────────
-    // This brain is a hard-nosed investor who looks for every reason NOT to invest.
-    // It focuses on: market risks, fatal flaws, competition threats, team gaps, burn rate.
+    // ── BRAIN 1: The Skeptical VC (Powered by GLM 5.2) ────────────────────────
     const brain1Prompt = `You are Brain 1 — a hardened, skeptical venture capitalist with 20 years of experience. You have seen 10,000 startups fail. You have no patience for hype.
 
 ${langInstruction}
@@ -79,14 +89,12 @@ Write a structured analysis (use markdown headers and bullet points) covering:
 2. **Competitive Death Threats** — Who is already doing this better and will destroy them
 3. **Team & Execution Gaps** — Why this team may not be able to pull it off
 4. **Financial Risks** — Where the unit economics break down
-5. **Market Timing Issues** — Why the timing might be wrong (too early, too late, wrong market)
+5. **Market Timing Issues** — Why the timing might be wrong
 6. **Your Skeptical Score** — Give a single score (0-100%) for Overall Success Probability with your reasoning
 
 Be brutally honest. Do NOT sugarcoat. Short, sharp, punchy sentences. Maximum 600 words.`;
 
-    // ── BRAIN 2: The Growth Strategist ───────────────────────────────────────
-    // This brain is an optimistic operator who has scaled multiple companies.
-    // It focuses on: market opportunity, unique advantages, growth levers, first-mover potential.
+    // ── BRAIN 2: The Growth Strategist (Powered by Kimi 2.6) ──────────────────
     const brain2Prompt = `You are Brain 2 — an elite growth strategist and operator who has built 5 companies from $0 to $50M+. You specialize in finding the hidden diamond in rough startup ideas.
 
 ${langInstruction}
@@ -110,10 +118,27 @@ Write a structured analysis (use markdown headers and bullet points) covering:
 
 Be constructive but evidence-based. Do NOT make things up. Short, energetic, specific sentences. Maximum 600 words.`;
 
-    // ── STEP 1: Run both brains in PARALLEL ──────────────────────────────────
+    // ── STEP 1: Run both brains in PARALLEL with their respective APIs ──
     const [brain1Analysis, brain2Analysis] = await Promise.all([
-      callBrain(nvidiaApiKey, brain1Prompt, `Analyze this startup idea:\n\n${answersText}`, 0.8),
-      callBrain(nvidiaApiKey, brain2Prompt, `Analyze this startup idea:\n\n${answersText}`, 0.7),
+      // Brain 1: GLM-5.2
+      callBrain(
+        'https://integrate.api.nvidia.com/v1/chat/completions', // Update base URL if not on NVIDIA
+        glmApiKey,
+        'z-ai/glm-5.2', // Model name for Brain 1
+        brain1Prompt,
+        `Analyze this startup idea:\n\n${answersText}`,
+        0.8
+      ).catch(e => `Brain 1 Analysis Failed: ${e.message}`),
+      
+      // Brain 2: Kimi-2.6
+      callBrain(
+        'https://integrate.api.nvidia.com/v1/chat/completions', // Update base URL if not on NVIDIA
+        kimiApiKey,
+        'kimi-2.6', // Model name for Brain 2
+        brain2Prompt,
+        `Analyze this startup idea:\n\n${answersText}`,
+        0.7
+      ).catch(e => `Brain 2 Analysis Failed: ${e.message}`)
     ]);
 
     // ── STEP 2: Synthesis Brain — reads both, produces final unified report ──
@@ -121,12 +146,12 @@ Be constructive but evidence-based. Do NOT make things up. Short, energetic, spe
 
 ${langInstruction}
 
-**Brain 1 (Skeptical VC) said:**
+**Brain 1 (Skeptical VC - GLM 5.2) said:**
 ${brain1Analysis}
 
 ---
 
-**Brain 2 (Growth Strategist) said:**
+**Brain 2 (Growth Strategist - Kimi 2.6) said:**
 ${brain2Analysis}
 
 ---
@@ -145,7 +170,7 @@ Structure your final report with rich markdown formatting, emojis, tables, and b
 
 # 🔬 Dual-Brain Validation Report
 
-> *Synthesized from two independent AI analysts: a Skeptical VC and a Growth Strategist*
+> *Synthesized from two independent AI analysts: GLM 5.2 (Skeptical VC) and Kimi 2.6 (Growth Strategist)*
 
 ## ⚖️ Brain Consensus Summary
 (2-3 paragraphs: Where did both brains agree? Where did they sharply disagree? What does that tension reveal?)
@@ -154,8 +179,8 @@ Structure your final report with rich markdown formatting, emojis, tables, and b
 
 ## 📊 Scoring Dashboard
 
-| Metric | Brain 1 (Skeptic) | Brain 2 (Optimist) | Final Score | Rating |
-|--------|-------------------|---------------------|-------------|--------|
+| Metric | GLM 5.2 (Skeptic) | Kimi 2.6 (Optimist) | Final Synthesized Score | Rating |
+|--------|-------------------|---------------------|-------------------------|--------|
 | Overall Success Probability | X% | X% | X% | ⭐⭐⭐ |
 | Market Opportunity | X% | X% | X% | ⭐⭐⭐ |
 | Problem-Solution Fit | X% | X% | X% | ⭐⭐⭐ |
@@ -219,15 +244,15 @@ Rating: ⭐ = Weak (0-40%) · ⭐⭐ = Moderate (41-69%) · ⭐⭐⭐ = Strong (
 
 Be specific to THIS idea. Generic advice is unacceptable. This report represents two AI brains and a synthesis — it should be the most thorough, battle-tested analysis money can't normally buy.`;
 
-    // ── STEP 3: Stream the synthesis to the client ───────────────────────────
+    // ── STEP 3: Stream the synthesis to the client (Using GLM key for synthesis) ──
     const synthesisRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${nvidiaApiKey}`
+        'Authorization': `Bearer ${glmApiKey}`
       },
       body: JSON.stringify({
-        model: 'meta/llama-3.1-8b-instruct',
+        model: 'z-ai/glm-5.2', // using GLM for the final synthesis
         messages: [
           { role: 'assistant', content: synthesisPrompt },
           { role: 'user', content: 'Synthesize the two brain analyses into the final comprehensive dual-brain validation report now.' }
@@ -239,7 +264,10 @@ Be specific to THIS idea. Generic advice is unacceptable. This report represents
       })
     });
 
-    if (!synthesisRes.ok) throw new Error(`Synthesis brain failed: ${synthesisRes.statusText}`);
+    if (!synthesisRes.ok) {
+      const errorText = await synthesisRes.text();
+      throw new Error(`Synthesis brain failed: ${synthesisRes.statusText} - ${errorText}`);
+    }
 
     // Stream the final synthesis directly to the client
     return new Response(synthesisRes.body, {
@@ -250,8 +278,8 @@ Be specific to THIS idea. Generic advice is unacceptable. This report represents
       },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[POST /api/ai/idea-validator]', error);
-    return NextResponse.json({ success: false, error: 'Dual-brain analysis failed. Please try again.' }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message || 'Dual-brain analysis failed.' }, { status: 500 });
   }
 }
