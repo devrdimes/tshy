@@ -150,7 +150,7 @@ interface AppState {
   currentBusiness: Business | null
   setBusinesses: (businesses: Business[]) => void
   setCurrentBusiness: (business: Business | null) => Promise<void>
-  refreshBusiness: () => Promise<void>
+  refreshBusiness: (businessId?: string) => Promise<void>
   // Plan Steps
   currentStep: PlanStep | null
   setCurrentStep: (step: PlanStep | null) => void
@@ -314,11 +314,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       console.error('Failed to refresh tasks:', e)
     }
   },
-  refreshBusiness: async () => {
-    const biz = get().currentBusiness
-    if (!biz?.id) return
+  refreshBusiness: async (businessId?: string) => {
+    const id = businessId || get().currentBusiness?.id
+    if (!id) return
     try {
-      const fullBiz = await fetchBusiness(biz.id)
+      const fullBiz = await fetchBusiness(id)
       set({ currentBusiness: fullBiz })
       if (fullBiz.planSteps?.length > 0) {
         const activeStep =

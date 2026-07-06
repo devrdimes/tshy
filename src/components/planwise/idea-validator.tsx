@@ -185,9 +185,10 @@ export function IdeaValidatorView() {
     setPlanStep("Saving your idea as a new business...")
 
     const token = localStorage.getItem('tashyeed_token')
+    const store = useAppStore.getState()
     
-    // Create a new business for this validated idea
-    let targetBusinessId = ""
+    // ── Step 1: Create the business ─────────────────────────────
+    let createdBusiness: any = null
     try {
       const resCreate = await fetch('/api/business', {
         method: 'POST',
@@ -198,65 +199,75 @@ export function IdeaValidatorView() {
           industry: 'Technology',
           stage: 'idea',
         })
-      });
+      })
       
       let createData: any = {}
-      try { createData = await resCreate.json() } catch { /* empty response */ }
+      try { createData = await resCreate.json() } catch { /* ignore */ }
       
       if (!resCreate.ok || !createData.success) {
-        const errMsg = createData.error || `HTTP ${resCreate.status}: Failed to save idea`
-        throw new Error(errMsg)
+        throw new Error(createData.error || `HTTP ${resCreate.status}: Failed to save idea`)
       }
-      targetBusinessId = createData.data?.id || createData.id
-      if (!targetBusinessId) throw new Error('Business created but no ID returned')
+      createdBusiness = createData.data
+      if (!createdBusiness?.id) throw new Error('Server created business but returned no ID')
       
-      useAppStore.getState().setCurrentBusiness(createData.data)
+      // Directly set in store — NO background fetch, NO race condition
+      useAppStore.setState({ currentBusiness: { ...createdBusiness, planSteps: [] } })
+      
     } catch (e: any) {
       setGeneratingPlan(false)
       setPlanStep("")
-      alert(`❌ Setup Failed\n\n${e.message}\n\nPlease check you are logged in and try again.`)
+      alert(`❌ Setup Failed\n\n${e.message}\n\nPlease make sure you are logged in and try again.`)
       return
     }
 
+    const businessId = createdBusiness.id
+
     try {
-      // ── Step 1: Generate execution plan ──────────────────────
+      // ── Step 2: Generate execution plan ────────────────────────
       setPlanStep("Generating your 10-step execution plan...")
       
-      let resPlan: Response
-      try {
-        resPlan = await fetch(`/api/business/${targetBusinessId}/generate-plan`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        })
-      } catch (networkErr: any) {
-        throw new Error(`Network error calling generate-plan: ${networkErr.message}`)
-      }
+      const resPlan = await fetch(`/api/business/${businessId}/generate-plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      })
 
       let planData: any = {}
-      try { planData = await resPlan.json() } catch { /* empty body */ }
+      try { planData = await resPlan.json() } catch { /* ignore */ }
       
       if (!resPlan.ok || !planData.success) {
-        const errMsg = planData.error || `HTTP ${resPlan.status}: Plan generation failed`
-        throw new Error(`Plan Generation Error: ${errMsg}`)
+        throw new Error(planData.error || `HTTP ${resPlan.status}: Plan generation failed — NVIDIA API key may not be configured on Vercel`)
       }
 
-      // ── Step 2: Generate pitch deck ───────────────────────────
-      let generatedPitchDeck = false
+      // Inject plan steps directly into store — no re-fetch needed
+      const generatedSteps = planData.data?.steps || []
+      useAppStore.setState((state) => ({
+        currentBusiness: state.currentBusiness
+          ? { ...state.currentBusiness, planSteps: generatedSteps, totalSteps: generatedSteps.length, currentStep: 1 }
+          : state.currentBusiness
+      }))
+
+      // ── Step 3: Generate pitch deck ────────────────────────────
+      let pitchSlides: any[] = []
       if (successScore !== null && successScore >= 40) {
         setPlanStep("Building your professional pitch deck...")
         try {
-          const resPitch = await fetch(`/api/business/${targetBusinessId}/generate-pitch-deck`, {
+          const resPitch = await fetch(`/api/business/${businessId}/generate-pitch-deck`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ language: useAppStore.getState().language })
+            body: JSON.stringify({ language: store.language })
           })
           let pitchData: any = {}
-          try { pitchData = await resPitch.json() } catch { /* empty body */ }
+          try { pitchData = await resPitch.json() } catch { /* ignore */ }
           
           if (resPitch.ok && pitchData.success) {
-            generatedPitchDeck = true
+            pitchSlides = pitchData.data?.slides || []
+            // Inject pitch deck directly into store
+            useAppStore.setState((state) => ({
+              currentBusiness: state.currentBusiness
+                ? { ...state.currentBusiness, pitchDeck: JSON.stringify(pitchSlides) }
+                : state.currentBusiness
+            }))
           } else {
-            // Don't throw — pitch deck failure is non-blocking, just navigate to planner
             console.warn('[pitch-deck] failed:', pitchData.error || `HTTP ${resPitch.status}`)
           }
         } catch (pitchErr: any) {
@@ -264,28 +275,34 @@ export function IdeaValidatorView() {
         }
       }
 
-      // ── Step 3: Refresh store and navigate ───────────────────
+      // ── Step 4: Final DB sync + navigate ──────────────────────
       setPlanStep("Opening your personalized planner...")
       
-      // Force refresh the business from DB so planSteps are loaded
-      await useAppStore.getState().refreshBusiness()
-      
-      // Small delay to ensure state is settled
-      await new Promise(r => setTimeout(r, 500))
+      // Now do a clean single fetch of the completed business (no race condition possible here)
+      try {
+        const resFull = await fetch(`/api/business/${businessId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (resFull.ok) {
+          const fullData = await resFull.json()
+          const fullBiz = fullData.data || fullData
+          if (fullBiz?.id) {
+            useAppStore.setState({ currentBusiness: fullBiz })
+          }
+        }
+      } catch { /* if this fetch fails, we already have the data in state from above */ }
 
+      // Refresh businesses list so sidebar shows new business
+      store.refreshBusiness(businessId).catch(() => {})
+
+      // Navigate to planner — data is already in the store
+      await new Promise(r => setTimeout(r, 300))
       useAppStore.getState().setActiveView('planner')
-      
-      // After navigation, also try to go to pitch deck tab if generated
-      if (generatedPitchDeck) {
-        setTimeout(() => {
-          useAppStore.getState().setActiveView('pitch-deck' as any)
-        }, 100)
-      }
-      
+
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Something went wrong. Please try again.'
       console.error('[handleGeneratePlan]', msg)
-      alert(`❌ Generation Failed\n\n${msg}\n\nPlease check:\n• You are logged in\n• The NVIDIA API key is configured on Vercel\n• Try again in a few seconds`)
+      alert(`❌ Generation Failed\n\n${msg}\n\nIf this keeps happening, make sure the NVIDIA_API_KEY is set in your Vercel environment variables.`)
     } finally {
       setGeneratingPlan(false)
       setPlanStep("")
