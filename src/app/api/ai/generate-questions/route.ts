@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const maxDuration = 60;
 
 // POST /api/ai/generate-questions — AI generates context-aware questions based on the initial idea
 export async function POST(request: NextRequest) {
