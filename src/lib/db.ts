@@ -512,7 +512,7 @@ class TableWrapper {
             if (fkInfo.column === 'id') {
               return r.id === parentId
             }
-            return r[fkInfo.parentColumn === 'id' ? 'id' : toCamelCase(fkInfo.column)] === parentId
+            return r[toCamelCase(fkInfo.column)] === parentId
           },
         )
 
