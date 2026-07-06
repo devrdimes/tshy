@@ -3,10 +3,9 @@
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAppStore } from "@/lib/store"
-import { Download, ChevronRight, ChevronLeft, Presentation, Loader2, Sparkles, AlertCircle } from "lucide-react"
+import { Download, ChevronRight, ChevronLeft, Presentation, Loader2, Sparkles, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/lib/i18n"
 
 interface PitchSlide {
@@ -17,24 +16,66 @@ interface PitchSlide {
 }
 
 export function PitchDeckView() {
-  const { currentBusiness } = useAppStore()
+  const { currentBusiness, language } = useAppStore()
   const { t } = useTranslation()
   const [currentSlide, setCurrentSlide] = useState(0)
   const [slides, setSlides] = useState<PitchSlide[]>([])
   const [isDownloading, setIsDownloading] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [genError, setGenError] = useState<string | null>(null)
   const deckRef = useRef<HTMLDivElement>(null)
 
+  // Reactively parse pitch deck from store whenever currentBusiness changes
   useEffect(() => {
     if (currentBusiness?.pitchDeck && currentBusiness.pitchDeck !== "[]") {
       try {
         const parsed = JSON.parse(currentBusiness.pitchDeck)
-        setSlides(Array.isArray(parsed) ? parsed : [])
-        setCurrentSlide(0)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSlides(parsed)
+          setCurrentSlide(0)
+          setIsGenerating(false)
+          setGenError(null)
+        }
       } catch (e) {
         console.error("Failed to parse pitch deck", e)
       }
     }
-  }, [currentBusiness])
+  }, [currentBusiness?.pitchDeck])
+
+  const generatePitchDeck = async () => {
+    if (!currentBusiness?.id) return
+    setIsGenerating(true)
+    setGenError(null)
+    const token = localStorage.getItem('tashyeed_token')
+    try {
+      const res = await fetch(`/api/business/${currentBusiness.id}/generate-pitch-deck`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ language })
+      })
+      let data: any = {}
+      try { data = await res.json() } catch { /* ignore */ }
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || `HTTP ${res.status}: Generation failed`)
+      }
+      const newSlides: PitchSlide[] = data.data?.slides || []
+      if (newSlides.length === 0) throw new Error("AI returned no slides. Please try again.")
+      
+      // Inject directly into store
+      useAppStore.setState((s) => ({
+        currentBusiness: s.currentBusiness
+          ? { ...s.currentBusiness, pitchDeck: JSON.stringify(newSlides) }
+          : s.currentBusiness
+      }))
+      setSlides(newSlides)
+      setCurrentSlide(0)
+    } catch (err: any) {
+      setGenError(err.message || "Generation failed. Please try again.")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   const handleDownloadPDF = async () => {
     if (!deckRef.current || slides.length === 0) return
@@ -62,7 +103,6 @@ export function PitchDeckView() {
 
   const slide = slides[currentSlide]
 
-  // Slide background accent colors cycling through a professional palette
   const accentColors = [
     { from: "#059669", to: "#0d9488" },
     { from: "#0284c7", to: "#0e7490" },
@@ -91,17 +131,61 @@ export function PitchDeckView() {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8 min-h-[60vh]">
         <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-950/50 dark:to-teal-950/50 flex items-center justify-center mb-6 shadow-lg">
-          <Presentation className="w-12 h-12 text-emerald-600" />
+          {isGenerating
+            ? <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
+            : <Presentation className="w-12 h-12 text-emerald-600" />
+          }
         </div>
-        <h2 className="text-3xl font-bold text-foreground mb-3">{t('pitchDeck.empty')}</h2>
-        <p className="text-muted-foreground max-w-md mb-8 text-lg">{t('pitchDeck.emptyDesc')}</p>
-        <Button
-          onClick={() => useAppStore.getState().setActiveView('idea-validator')}
-          className="bg-emerald-600 hover:bg-emerald-700 h-12 px-8 text-base shadow-lg shadow-emerald-500/20"
-        >
-          <Sparkles className="w-5 h-5 mr-2" />
-          {t('pitchDeck.validate')}
-        </Button>
+
+        {isGenerating ? (
+          <>
+            <h2 className="text-3xl font-bold text-foreground mb-3">Crafting Your Pitch Deck</h2>
+            <p className="text-muted-foreground max-w-md mb-2 text-lg">
+              Our AI is writing 10 professional investor slides tailored to your business.
+            </p>
+            <p className="text-sm text-muted-foreground">This takes about 20–40 seconds…</p>
+          </>
+        ) : genError ? (
+          <>
+            <h2 className="text-2xl font-bold text-foreground mb-3">Generation Failed</h2>
+            <p className="text-red-500 dark:text-red-400 max-w-md mb-6 text-sm bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3">
+              {genError}
+            </p>
+            <Button
+              onClick={generatePitchDeck}
+              className="bg-emerald-600 hover:bg-emerald-700 h-12 px-8 text-base shadow-lg shadow-emerald-500/20"
+            >
+              <RefreshCw className="w-5 h-5 mr-2" />
+              Try Again
+            </Button>
+          </>
+        ) : (
+          <>
+            <h2 className="text-3xl font-bold text-foreground mb-3">{t('pitchDeck.empty')}</h2>
+            <p className="text-muted-foreground max-w-md mb-8 text-lg">
+              {currentBusiness.planSteps?.length > 0
+                ? "Your plan is ready. Generate a professional investor pitch deck now."
+                : t('pitchDeck.emptyDesc')}
+            </p>
+            {currentBusiness.planSteps?.length > 0 ? (
+              <Button
+                onClick={generatePitchDeck}
+                className="bg-emerald-600 hover:bg-emerald-700 h-12 px-8 text-base shadow-lg shadow-emerald-500/20"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Generate Pitch Deck
+              </Button>
+            ) : (
+              <Button
+                onClick={() => useAppStore.getState().setActiveView('idea-validator')}
+                className="bg-emerald-600 hover:bg-emerald-700 h-12 px-8 text-base shadow-lg shadow-emerald-500/20"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                {t('pitchDeck.validate')}
+              </Button>
+            )}
+          </>
+        )}
       </div>
     )
   }
@@ -121,16 +205,26 @@ export function PitchDeckView() {
             {currentBusiness.name} · {slides.length} slides
           </p>
         </div>
-        <Button
-          onClick={handleDownloadPDF}
-          disabled={isDownloading}
-          className="bg-emerald-600 hover:bg-emerald-700 shadow-md h-11 px-6 transition-all hover:shadow-lg hover:shadow-emerald-500/20"
-        >
-          {isDownloading
-            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t('pitchDeck.generating')}</>
-            : <><Download className="w-4 h-4 mr-2" />{t('pitchDeck.download')}</>
-          }
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={generatePitchDeck}
+            disabled={isGenerating}
+            className="h-11 px-4"
+          >
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          </Button>
+          <Button
+            onClick={handleDownloadPDF}
+            disabled={isDownloading}
+            className="bg-emerald-600 hover:bg-emerald-700 shadow-md h-11 px-6 transition-all hover:shadow-lg hover:shadow-emerald-500/20"
+          >
+            {isDownloading
+              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t('pitchDeck.generating')}</>
+              : <><Download className="w-4 h-4 mr-2" />{t('pitchDeck.download')}</>
+            }
+          </Button>
+        </div>
       </div>
 
       {/* Slide Viewer */}
@@ -147,9 +241,7 @@ export function PitchDeckView() {
             >
               <Card className="overflow-hidden border-0 shadow-2xl">
                 <CardContent className="p-0">
-                  {/* Slide Layout: sidebar accent + content */}
                   <div className="flex" style={{ minHeight: '420px' }}>
-                    {/* Left accent bar with slide number */}
                     <div
                       className="flex flex-col items-center justify-between py-8 px-4 shrink-0 w-20"
                       style={{ background: `linear-gradient(180deg, ${accent.from}, ${accent.to})` }}
@@ -163,7 +255,6 @@ export function PitchDeckView() {
                       </div>
                     </div>
 
-                    {/* Main content */}
                     <div className="flex-1 p-8 sm:p-12 bg-card flex flex-col justify-center">
                       <div
                         className="inline-block text-xs font-bold tracking-widest uppercase px-3 py-1 rounded-full mb-6 w-fit"
@@ -194,7 +285,6 @@ export function PitchDeckView() {
                     </div>
                   </div>
 
-                  {/* Design note footer */}
                   {slide?.designNote && (
                     <div className="border-t border-border bg-muted/50 px-8 py-3 flex items-center gap-3">
                       <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
@@ -210,18 +300,10 @@ export function PitchDeckView() {
           </AnimatePresence>
         </div>
 
-        {/* Navigation Controls */}
         <div className="border-t border-border bg-card/80 backdrop-blur-sm px-6 py-4 flex items-center justify-between">
-          <Button
-            variant="outline"
-            onClick={prevSlide}
-            disabled={currentSlide === 0}
-            className="gap-2"
-          >
+          <Button variant="outline" onClick={prevSlide} disabled={currentSlide === 0} className="gap-2">
             <ChevronLeft className="w-4 h-4" /> Previous
           </Button>
-
-          {/* Dot indicators */}
           <div className="flex gap-1.5 items-center">
             {slides.map((_, idx) => (
               <button
@@ -238,13 +320,7 @@ export function PitchDeckView() {
               />
             ))}
           </div>
-
-          <Button
-            variant="outline"
-            onClick={nextSlide}
-            disabled={currentSlide === slides.length - 1}
-            className="gap-2"
-          >
+          <Button variant="outline" onClick={nextSlide} disabled={currentSlide === slides.length - 1} className="gap-2">
             Next <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
@@ -273,62 +349,22 @@ export function PitchDeckView() {
 
       {/* Hidden PDF export container */}
       <div className="sr-only" aria-hidden="true">
-        <div
-          ref={deckRef}
-          style={{
-            width: '1280px',
-            background: 'white',
-            fontFamily: 'Arial, sans-serif',
-          }}
-        >
+        <div ref={deckRef} style={{ width: '1280px', background: 'white', fontFamily: 'Arial, sans-serif' }}>
           {slides.map((s, idx) => {
             const a = accentColors[idx % accentColors.length]
             return (
-              <div
-                key={idx}
-                style={{
-                  display: 'flex',
-                  width: '1280px',
-                  height: '720px',
-                  pageBreakAfter: 'always',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Accent sidebar */}
-                <div style={{
-                  width: '80px',
-                  background: `linear-gradient(180deg, ${a.from}, ${a.to})`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'flex-end',
-                  padding: '32px 12px',
-                }}>
+              <div key={idx} style={{ display: 'flex', width: '1280px', height: '720px', pageBreakAfter: 'always', overflow: 'hidden' }}>
+                <div style={{ width: '80px', background: `linear-gradient(180deg, ${a.from}, ${a.to})`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '32px 12px' }}>
                   <div style={{ color: 'white', textAlign: 'center' }}>
                     <div style={{ fontSize: '28px', fontWeight: 900, lineHeight: 1 }}>{s.slideNumber}</div>
                     <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>/{slides.length}</div>
                   </div>
                 </div>
-                {/* Content */}
                 <div style={{ flex: 1, padding: '56px 72px', background: '#ffffff', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{
-                    display: 'inline-block',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    letterSpacing: '3px',
-                    textTransform: 'uppercase',
-                    color: a.from,
-                    background: `${a.from}15`,
-                    borderRadius: '20px',
-                    padding: '4px 14px',
-                    marginBottom: '24px',
-                    width: 'fit-content',
-                  }}>
+                  <div style={{ display: 'inline-block', fontSize: '11px', fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase', color: a.from, background: `${a.from}15`, borderRadius: '20px', padding: '4px 14px', marginBottom: '24px', width: 'fit-content' }}>
                     {currentBusiness.name} · Slide {s.slideNumber}
                   </div>
-                  <div style={{ fontSize: '40px', fontWeight: 900, color: '#0f172a', lineHeight: 1.15, marginBottom: '32px' }}>
-                    {s.title}
-                  </div>
+                  <div style={{ fontSize: '40px', fontWeight: 900, color: '#0f172a', lineHeight: 1.15, marginBottom: '32px' }}>{s.title}</div>
                   <div style={{ fontSize: '18px', color: '#475569', lineHeight: 1.7 }}>
                     {s.content.split('\n').filter(Boolean).map((line, i) => {
                       const trimmed = line.trim()

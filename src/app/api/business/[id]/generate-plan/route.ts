@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const maxDuration = 60;
+export const runtime = 'edge';
 import { db } from '@/lib/db';
-
 type RouteContext = { params: Promise<{ id: string }> };
 
 // POST /api/business/[id]/generate-plan — AI generates comprehensive business plan steps

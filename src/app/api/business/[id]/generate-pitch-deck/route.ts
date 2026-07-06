@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const maxDuration = 60;
+export const runtime = 'edge';
 import { db } from '@/lib/db';
-
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(
@@ -68,36 +68,36 @@ Initial Capital: $${business.initialCapital}
           model: 'meta/llama-3.1-8b-instruct',
           messages: [
             {
-              role: 'assistant',
+              role: 'system',
               content: `You are an elite VC pitch deck expert. ${langInstructions[lang]}
 
-Generate a compelling 10-slide investor pitch deck for the startup below. Return ONLY valid JSON — no markdown, no text outside JSON.
+Generate a 10-slide investor pitch deck for the startup below.
+CRITICAL: You MUST be extremely concise. Max 15 words per slide. Use short, punchy bullet points.
+Return ONLY valid JSON — no markdown, no text outside JSON.
 
 Format:
 {
   "slides": [
     {
       "slideNumber": 1,
-      "title": "Slide title",
-      "content": "Compelling content for this slide. Use bullet points with • character. Keep concise and impactful.",
-      "designNote": "Brief visual direction: what chart/icon/image to show"
+      "title": "Short title",
+      "content": "• Short bullet 1\n• Short bullet 2",
+      "designNote": "1-2 words visual direction"
     }
   ]
 }
 
-The 10 slides MUST be:
-1. Title Slide — Company name, tagline, founder name
-2. The Problem — Specific pain point with data/stats
-3. The Solution — How the product solves it uniquely
-4. Market Size — TAM, SAM, SOM with realistic numbers
-5. Business Model — How money is made, pricing strategy
-6. Go-to-Market — Customer acquisition channels and strategy
-7. Competitive Advantage — Why this beats competitors
-8. Product/Technology — Key features or proprietary tech
-9. The Team — Why this team can execute
-10. The Ask — Funding amount, use of funds, milestones
-
-Make every slide SPECIFIC to this business. Compelling investor language. No generic content.`,
+The 10 slides:
+1. Title
+2. Problem
+3. Solution
+4. Market Size
+5. Business Model
+6. Go-to-Market
+7. Competitive Advantage
+8. Product/Tech
+9. Team
+10. The Ask`
             },
             {
               role: 'user',
@@ -106,7 +106,7 @@ Make every slide SPECIFIC to this business. Compelling investor language. No gen
           ],
           temperature: 0.65,
           top_p: 0.9,
-          max_tokens: 2500,
+          max_tokens: 1500,
         })
       });
     } finally {
