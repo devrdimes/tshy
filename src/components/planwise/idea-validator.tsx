@@ -186,75 +186,106 @@ export function IdeaValidatorView() {
 
     const token = localStorage.getItem('tashyeed_token')
     
-    // Create a new business for this validated idea so it never gets lost!
+    // Create a new business for this validated idea
     let targetBusinessId = ""
     try {
       const resCreate = await fetch('/api/business', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
-          name: ideaText.split(' ').slice(0, 5).join(' ') + '...', // short name from idea
+          name: ideaText.split(' ').slice(0, 5).join(' ') + '...',
           description: ideaText,
           industry: 'Technology',
           stage: 'idea',
         })
       });
-      const createData = await resCreate.json();
+      
+      let createData: any = {}
+      try { createData = await resCreate.json() } catch { /* empty response */ }
+      
       if (!resCreate.ok || !createData.success) {
-        throw new Error("Failed to save idea as a business.")
+        const errMsg = createData.error || `HTTP ${resCreate.status}: Failed to save idea`
+        throw new Error(errMsg)
       }
-      targetBusinessId = createData.data.id
-      await useAppStore.getState().setCurrentBusiness(createData.data)
+      targetBusinessId = createData.data?.id || createData.id
+      if (!targetBusinessId) throw new Error('Business created but no ID returned')
+      
+      useAppStore.getState().setCurrentBusiness(createData.data)
     } catch (e: any) {
-      alert(e.message)
       setGeneratingPlan(false)
       setPlanStep("")
+      alert(`❌ Setup Failed\n\n${e.message}\n\nPlease check you are logged in and try again.`)
       return
     }
 
     try {
-      // ── Step 1: Generate execution plan ─────────────────────
+      // ── Step 1: Generate execution plan ──────────────────────
       setPlanStep("Generating your 10-step execution plan...")
-      const resPlan = await fetch(`/api/business/${targetBusinessId}/generate-plan`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
-
-      const planData = await resPlan.json().catch(() => ({ success: false }))
-      if (!resPlan.ok || !planData.success) {
-        throw new Error(planData.error || 'Plan generation failed — please try again.')
+      
+      let resPlan: Response
+      try {
+        resPlan = await fetch(`/api/business/${targetBusinessId}/generate-plan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        })
+      } catch (networkErr: any) {
+        throw new Error(`Network error calling generate-plan: ${networkErr.message}`)
       }
 
-      // ── Step 2: Generate pitch deck if score >= 40 ───────────
+      let planData: any = {}
+      try { planData = await resPlan.json() } catch { /* empty body */ }
+      
+      if (!resPlan.ok || !planData.success) {
+        const errMsg = planData.error || `HTTP ${resPlan.status}: Plan generation failed`
+        throw new Error(`Plan Generation Error: ${errMsg}`)
+      }
+
+      // ── Step 2: Generate pitch deck ───────────────────────────
       let generatedPitchDeck = false
       if (successScore !== null && successScore >= 40) {
         setPlanStep("Building your professional pitch deck...")
-        const resPitch = await fetch(`/api/business/${targetBusinessId}/generate-pitch-deck`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ language: useAppStore.getState().language })
-        })
-        const pitchData = await resPitch.json().catch(() => ({ success: false }))
-        if (resPitch.ok && pitchData.success) {
-          generatedPitchDeck = true
-        } else {
-          console.warn('Pitch deck generation failed, continuing to planner:', pitchData.error)
+        try {
+          const resPitch = await fetch(`/api/business/${targetBusinessId}/generate-pitch-deck`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ language: useAppStore.getState().language })
+          })
+          let pitchData: any = {}
+          try { pitchData = await resPitch.json() } catch { /* empty body */ }
+          
+          if (resPitch.ok && pitchData.success) {
+            generatedPitchDeck = true
+          } else {
+            // Don't throw — pitch deck failure is non-blocking, just navigate to planner
+            console.warn('[pitch-deck] failed:', pitchData.error || `HTTP ${resPitch.status}`)
+          }
+        } catch (pitchErr: any) {
+          console.warn('[pitch-deck] network error:', pitchErr.message)
         }
       }
 
-      // ── Step 3: Refresh and navigate ────────────────────────
-      setPlanStep("Finalizing everything...")
+      // ── Step 3: Refresh store and navigate ───────────────────
+      setPlanStep("Opening your personalized planner...")
+      
+      // Force refresh the business from DB so planSteps are loaded
       await useAppStore.getState().refreshBusiness()
+      
+      // Small delay to ensure state is settled
+      await new Promise(r => setTimeout(r, 500))
 
+      useAppStore.getState().setActiveView('planner')
+      
+      // After navigation, also try to go to pitch deck tab if generated
       if (generatedPitchDeck) {
-        useAppStore.getState().setActiveView('pitch-deck' as any)
-      } else {
-        useAppStore.getState().setActiveView('planner')
+        setTimeout(() => {
+          useAppStore.getState().setActiveView('pitch-deck' as any)
+        }, 100)
       }
+      
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Something went wrong. Please try again.'
       console.error('[handleGeneratePlan]', msg)
-      alert(`Error: ${msg}`)
+      alert(`❌ Generation Failed\n\n${msg}\n\nPlease check:\n• You are logged in\n• The NVIDIA API key is configured on Vercel\n• Try again in a few seconds`)
     } finally {
       setGeneratingPlan(false)
       setPlanStep("")
