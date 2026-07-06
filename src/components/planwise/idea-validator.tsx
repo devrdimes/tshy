@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -540,22 +540,22 @@ export function IdeaValidatorView() {
           animate={{ opacity: 1 }}
           className="text-center max-w-lg w-full"
         >
-          {/* Dual brain animation */}
+          {/* Dual analysis animation */}
           <div className="flex items-center justify-center gap-6 mb-10">
-            {/* Brain 1 */}
+            {/* Analyst 1 */}
             <motion.div
               animate={{ scale: [1, 1.08, 1], opacity: [0.8, 1, 0.8] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               className="flex flex-col items-center"
             >
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-xl shadow-red-500/30">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center shadow-xl shadow-slate-900/40">
                 <Brain className="w-10 h-10 text-white" />
               </div>
-              <span className="text-xs font-bold text-red-600 mt-2">GLM 5.2 (Skeptic)</span>
-              <span className="text-[10px] text-muted-foreground">Finding flaws...</span>
+              <span className="text-xs font-bold text-slate-600 mt-2">Risk Analyst</span>
+              <span className="text-[10px] text-muted-foreground">Stress-testing idea...</span>
             </motion.div>
 
-            {/* Sync icon */}
+            {/* Sync pulse */}
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
@@ -564,31 +564,31 @@ export function IdeaValidatorView() {
               <Sparkles className="w-5 h-5 text-white" />
             </motion.div>
 
-            {/* Brain 2 */}
+            {/* Analyst 2 */}
             <motion.div
               animate={{ scale: [1, 1.08, 1], opacity: [0.8, 1, 0.8] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 1 }}
               className="flex flex-col items-center"
             >
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-500/30">
-                <Brain className="w-10 h-10 text-white" />
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center shadow-xl shadow-violet-500/30">
+                <TrendingUp className="w-10 h-10 text-white" />
               </div>
-              <span className="text-xs font-bold text-emerald-600 mt-2">Kimi 2.6 (Optimist)</span>
+              <span className="text-xs font-bold text-violet-600 mt-2">Growth Analyst</span>
               <span className="text-[10px] text-muted-foreground">Finding opportunities...</span>
             </motion.div>
           </div>
 
-          <h2 className="text-2xl font-bold text-foreground mb-2">Two Brains Are Thinking...</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Deep Analysis in Progress</h2>
           <p className="text-muted-foreground text-sm mb-8">
-            Your idea is being independently analyzed by two AI experts simultaneously, then synthesized into one powerful report.
+            Our proprietary analysis engine is independently evaluating your idea from multiple expert perspectives, then synthesizing one definitive report.
           </p>
 
           <div className="bg-card border border-border rounded-2xl p-5 text-left space-y-4">
             {[
-              { color: "text-red-500", label: "GLM 5.2 (Skeptic):", step: "Stress-testing your assumptions...", delay: 0 },
-              { color: "text-emerald-500", label: "Kimi 2.6 (Optimist):", step: "Mapping your growth opportunities...", delay: 0.5 },
-              { color: "text-violet-500", label: "Synthesis:", step: "Weighing both perspectives for final verdict...", delay: 1.2 },
-              { color: "text-amber-500", label: "Report:", step: "Writing your dual-brain analysis...", delay: 2 },
+              { color: "text-slate-500", label: "Risk Assessment:", step: "Identifying vulnerabilities and competitive threats...", delay: 0 },
+              { color: "text-violet-500", label: "Market Analysis:", step: "Mapping growth opportunities and market timing...", delay: 0.6 },
+              { color: "text-indigo-500", label: "Synthesis:", step: "Calibrating final scores and writing the verdict...", delay: 1.4 },
+              { color: "text-amber-500", label: "Report:", step: "Formatting your professional validation report...", delay: 2.2 },
             ].map(({ color, label, step, delay }) => (
               <motion.div
                 key={label}
@@ -618,7 +618,7 @@ export function IdeaValidatorView() {
           </div>
           <div>
             <h2 className="font-bold text-foreground text-lg">VC Validation Report</h2>
-            <p className="text-xs text-muted-foreground">Elite startup analysis · AI-generated</p>
+            <p className="text-xs text-muted-foreground">Multi-perspective analysis · Synthesized by AI · VC-grade</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">

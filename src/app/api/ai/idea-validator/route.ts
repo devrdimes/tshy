@@ -1,266 +1,291 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// ── Helper: call an OpenAI-compatible endpoint, returns full text (non-streaming) ──
-async function callBrain(
-  apiUrl: string,
+const NVIDIA_BASE = 'https://integrate.api.nvidia.com/v1/chat/completions';
+const MODEL = 'meta/llama-3.1-8b-instruct';
+
+// ── Helper: single non-streaming AI call ─────────────────────────
+async function callAnalyst(
   apiKey: string,
-  modelName: string,
   systemPrompt: string,
   userMessage: string,
   temperature = 0.75
 ): Promise<string> {
-  const res = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: modelName,
-      messages: [
-        { role: 'assistant', content: systemPrompt },
-        { role: 'user', content: userMessage }
-      ],
-      temperature,
-      top_p: 0.95,
-      max_tokens: 2048,
-      stream: false
-    })
-  });
-  
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Brain call failed (${modelName}): ${res.status} ${res.statusText} - ${errorText}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 45000);
+  try {
+    const res = await fetch(NVIDIA_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ],
+        temperature,
+        top_p: 0.95,
+        max_tokens: 1800,
+        stream: false
+      })
+    });
+    if (!res.ok) {
+      const err = await res.text().catch(() => res.statusText);
+      throw new Error(`Analyst call failed: ${res.status} — ${err}`);
+    }
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() || '';
+  } finally {
+    clearTimeout(timer);
   }
-  
-  const data = await res.json();
-  return data.choices[0]?.message?.content || '';
 }
 
-// POST /api/ai/idea-validator — Dual AI brain analysis (GLM + Kimi)
+// POST /api/ai/idea-validator
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { answers, language } = body;
     const lang = language || 'en';
 
-    const langInstructions: Record<string, string> = {
-      en: 'CRITICAL: You MUST respond in English. Do NOT use any other language.',
-      ar: 'CRITICAL: You MUST respond entirely in Arabic (العربية). Do NOT output any English text in your response. TRANSLATE ALL CONCEPTS TO ARABIC.',
-      fr: 'CRITICAL: You MUST respond entirely in French (Français). Do NOT output any English text in your response. TRANSLATE ALL CONCEPTS TO FRENCH.',
+    const langInstruction: Record<string, string> = {
+      en: 'You MUST respond in English only.',
+      ar: 'You MUST respond entirely in Arabic (العربية). Translate every word — no English at all.',
+      fr: 'You MUST respond entirely in French (Français). Translate every word — no English at all.',
     };
 
-    if (!answers || typeof answers !== 'object') {
+    if (!answers || typeof answers !== 'object' || Object.keys(answers).length === 0) {
       return NextResponse.json({ success: false, error: 'Answers are required' }, { status: 400 });
     }
 
-    // ── API Keys for the Two Brains ──
-    // Brain 1 uses the primary key (GLM 5.2, already used in SaaS)
-    const glmApiKey = process.env.GLM_API_KEY || process.env.NVIDIA_API_KEY;
-    // Brain 2 uses the Kimi 2.6 key the user provided
-    const kimiApiKey = process.env.KIMI_API_KEY || process.env.NVIDIA_API_KEY;
+    const primaryKey = process.env.GLM_API_KEY || process.env.NVIDIA_API_KEY;
+    const secondaryKey = process.env.KIMI_API_KEY || process.env.NVIDIA_API_KEY;
 
-    if (!glmApiKey || !kimiApiKey) {
-      return NextResponse.json({ success: false, error: 'API keys for Brain 1 and Brain 2 are not configured' }, { status: 500 });
+    if (!primaryKey || !secondaryKey) {
+      return NextResponse.json({ success: false, error: 'AI service not configured. Contact support.' }, { status: 500 });
     }
 
     const answersText = Object.entries(answers)
-      .map(([q, a]) => `Q: ${q}\nA: ${a}`)
+      .map(([q, a]) => `Question: ${q}\nFounder's Answer: ${a}`)
       .join('\n\n');
 
-    const langInstruction = langInstructions[lang];
+    const lang_rule = langInstruction[lang] || langInstruction.en;
 
-    // ── BRAIN 1: The Skeptical VC (Powered by GLM 5.2) ────────────────────────
-    const brain1Prompt = `You are Brain 1 — a hardened, skeptical venture capitalist with 20 years of experience. You have seen 10,000 startups fail. You have no patience for hype.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ANALYST 1 — Risk & Viability Expert
+    // Role: Deep-dives into what could go wrong. Objective, data-driven skeptic.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const analyst1System = `You are a Senior Risk & Viability Analyst at a top-tier global venture capital firm. You have spent 18 years stress-testing startup ideas before investment decisions. You are methodical, data-driven, and uncompromising in your assessment.
 
-${langInstruction}
+${lang_rule}
 
-Your SOLE job is to stress-test this startup idea by finding every flaw, risk, red flag, and fatal weakness. You are NOT here to encourage — you are here to save the founder from wasting their life savings.
+Your mandate is to produce a rigorous internal risk brief on a startup idea. You are NOT pessimistic for the sake of it — you identify REAL, SPECIFIC risks with real-world evidence. Every claim must be grounded in how markets actually work.
 
-Think like a devil's advocate. Ask:
-- Why will this FAIL?
-- Who will CRUSH them in the market?
-- Why is the team NOT ready?
-- Where will the money RUN OUT?
-- What assumption is COMPLETELY WRONG?
+Analyze the following dimensions with precision:
+1. **Market & Competitive Risk**: Who are the real incumbents? What moats do they have? Is this a vitamin or a painkiller?
+2. **Business Model Vulnerabilities**: Where do the unit economics break down? What assumptions are dangerous?
+3. **Execution & Team Risk**: What capabilities are missing? What could kill this in Year 1?
+4. **Timing & Macro Risk**: Is market timing off? Any regulatory, economic, or tech trends working against this?
+5. **Capital Efficiency**: Is the burn rate sustainable? When does this run out of money?
+6. **Risk-Adjusted Score**: On a scale of 0-100%, what is the realistic Overall Success Probability and why?
 
-Write a structured analysis (use markdown headers and bullet points) covering:
-1. **Fatal Flaws & Red Flags** — The top 3-5 most dangerous problems with this idea
-2. **Competitive Death Threats** — Who is already doing this better and will destroy them
-3. **Team & Execution Gaps** — Why this team may not be able to pull it off
-4. **Financial Risks** — Where the unit economics break down
-5. **Market Timing Issues** — Why the timing might be wrong
-6. **Your Skeptical Score** — Give a single score (0-100%) for Overall Success Probability with your reasoning
+Rules:
+- Be specific to THIS idea. Reference real competitors by name.
+- Use precise language. No vague statements like "there is competition" — name it.
+- Be concise. Max 550 words. Use markdown headers and bullets.
+- End with: RISK_SCORE: [number]%`;
 
-Be brutally honest. Do NOT sugarcoat. Short, sharp, punchy sentences. Maximum 600 words.`;
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ANALYST 2 — Market Opportunity & Growth Expert
+    // Role: Identifies every real advantage, timing signal, and growth path.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const analyst2System = `You are a Senior Market Opportunity & Growth Strategist at a leading venture capital firm. You have helped 40+ startups scale from zero to $10M+ ARR. You see what others miss — the hidden market dynamics, the timing advantages, the growth levers that compound.
 
-    // ── BRAIN 2: The Growth Strategist (Powered by Kimi 2.6) ──────────────────
-    const brain2Prompt = `You are Brain 2 — an elite growth strategist and operator who has built 5 companies from $0 to $50M+. You specialize in finding the hidden diamond in rough startup ideas.
+${lang_rule}
 
-${langInstruction}
+Your mandate is to produce a rigorous opportunity brief on a startup idea. You are NOT an optimist who cheers everything — you identify GENUINE, DEFENSIBLE advantages and opportunities grounded in market reality.
 
-Your SOLE job is to identify every genuine opportunity, strategic advantage, and growth lever in this startup idea. You are NOT a cheerleader — you find REAL strengths based on evidence.
+Analyze the following dimensions with precision:
+1. **Market Timing & Tailwinds**: What macro, technological, or behavioral trends make NOW the right time? What would have made this impossible 3 years ago?
+2. **Unfair Advantages**: What does this founder uniquely understand that incumbents have missed? What is the real insight?
+3. **Growth Architecture**: What are the top 3 fastest paths to first $100K revenue? What is the strongest customer acquisition channel for this specific business?
+4. **Scalability & Moat Building**: What happens at 10x scale? What network effect, data advantage, or switching cost emerges over time?
+5. **Hidden Market Angles**: Is there an underserved segment, adjacent market, or pivot that dramatically improves the opportunity?
+6. **Opportunity-Adjusted Score**: On a scale of 0-100%, what is the realistic Overall Success Probability and why?
 
-Think like a growth architect. Ask:
-- What UNIQUE advantage does this idea have that others miss?
-- What market TAILWIND is behind this idea?
-- What is the FASTEST path to first revenue?
-- What is the SCALABILITY multiplier in this model?
-- What SECRET insight does this founder have?
+Rules:
+- Be specific to THIS idea. Reference real market data and comparable companies.
+- Cite real examples of similar companies that succeeded and why this can too.
+- Be concise. Max 550 words. Use markdown headers and bullets.
+- End with: OPPORTUNITY_SCORE: [number]%`;
 
-Write a structured analysis (use markdown headers and bullet points) covering:
-1. **Genuine Strengths & Unfair Advantages** — The real, defensible advantages of this idea
-2. **Market Opportunity & Timing** — Why NOW is the right time for this idea
-3. **Growth Levers** — The top 3-4 fastest paths to traction and revenue
-4. **Strategic Moat** — What will make this hard to copy once they get going
-5. **The Hidden Opportunity** — An angle or market segment the founder might have missed
-6. **Your Optimistic Score** — Give a single score (0-100%) for Overall Success Probability with your reasoning
-
-Be constructive but evidence-based. Do NOT make things up. Short, energetic, specific sentences. Maximum 600 words.`;
-
-    // ── STEP 1: Run both brains in PARALLEL with their respective APIs ──
-    const [brain1Analysis, brain2Analysis] = await Promise.all([
-      // Brain 1: GLM-5.2
-      callBrain(
-        'https://integrate.api.nvidia.com/v1/chat/completions', // Update base URL if not on NVIDIA
-        glmApiKey,
-        'meta/llama-3.1-8b-instruct', // Model name for Brain 1
-        brain1Prompt,
-        `Analyze this startup idea:\n\n${answersText}`,
-        0.8
-      ).catch(e => `Brain 1 Analysis Failed: ${e.message}`),
-      
-      // Brain 2: Kimi-2.6
-      callBrain(
-        'https://integrate.api.nvidia.com/v1/chat/completions', // Update base URL if not on NVIDIA
-        kimiApiKey,
-        'meta/llama-3.1-8b-instruct', // Model name for Brain 2
-        brain2Prompt,
-        `Analyze this startup idea:\n\n${answersText}`,
-        0.7
-      ).catch(e => `Brain 2 Analysis Failed: ${e.message}`)
+    // ── Run both analysts in parallel ────────────────────────────
+    const [riskBrief, opportunityBrief] = await Promise.all([
+      callAnalyst(primaryKey, analyst1System, `Evaluate this startup idea:\n\n${answersText}`, 0.72).catch(e => `[Risk analysis unavailable: ${e.message}]`),
+      callAnalyst(secondaryKey, analyst2System, `Evaluate this startup idea:\n\n${answersText}`, 0.68).catch(e => `[Opportunity analysis unavailable: ${e.message}]`),
     ]);
 
-    // ── STEP 2: Synthesis Brain — reads both, produces final unified report ──
-    const synthesisPrompt = `You are the Chief Analysis Officer — the final decision-maker in a top-tier VC firm. You have received two internal assessments of a startup idea.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // SYNTHESIS — Chief Investment Officer writes the final report
+    // Tone: Single voice, institutional quality, deeply specific.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const synthesisSystem = `You are the Chief Investment Officer of an elite VC firm, known for institutional-quality investment memos. You have just received two internal analyst briefs on a startup idea — one focused on risks, one on opportunities. Your job is to synthesize them into a single, authoritative, deeply professional Validation Report.
 
-${langInstruction}
+${lang_rule}
 
-**Internal Assessment 1 (Risks & Flaws):**
-${brain1Analysis}
+STRICT RULES — VIOLATIONS WILL INVALIDATE THE REPORT:
+1. Do NOT mention "analysts", "briefs", "Brain 1", "Brain 2", or any internal process. Write as if this is YOUR sole analysis.
+2. Do NOT use phrases like "one analyst said" or "our risk team found". Write in first-person singular authoritative voice.
+3. The Overall Success Probability must be a CALIBRATED synthesis — not a simple average. Use judgment.
+4. The scoring table MUST include a row with the exact text "Overall Success Probability" (critical for our system to parse).
+5. Every section must be SPECIFIC to this exact idea. Generic statements are unacceptable.
+6. Write like a $500/hour consultant who deeply understands this market. Every sentence must earn its place.
 
----
+TONE: Confident. Precise. Data-grounded. Occasionally direct about hard truths. Never vague. Never generic.
 
-**Internal Assessment 2 (Opportunities & Strengths):**
-${brain2Analysis}
-
----
-
-Your job is to SYNTHESIZE both assessments into ONE definitive, highly professional VC validation report. 
-CRITICAL RULES:
-- Do NOT mention "Brain 1", "Brain 2", "Internal Assessment", or multiple analysts. 
-- Present the report as a single, unified analysis from our elite VC firm.
-- The final score must be a BALANCED result of the risks and opportunities.
-- In the "Scoring Dashboard" table, you must include a row with the exact metric name "Overall Success Probability" so our system can parse the score.
-
-Structure your final report with rich markdown formatting, emojis, tables, and bold text:
+FORMAT YOUR REPORT EXACTLY AS FOLLOWS:
 
 ---
 
-# 🔬 VC Idea Validation Report
+# 🔬 Idea Validation Report
 
-> *An elite, professional analysis of your startup idea*
+*A comprehensive VC-grade analysis — prepared exclusively for the founder*
+
+---
 
 ## 📊 Scoring Dashboard
 
-| Metric | Score | Rating |
-|--------|-------|--------|
-| Overall Success Probability | X% | ⭐⭐⭐ |
-| Market Opportunity | X% | ⭐⭐⭐ |
-| Problem-Solution Fit | X% | ⭐⭐⭐ |
-| Competitive Moat | X% | ⭐⭐⭐ |
-| Team & Execution Readiness | X% | ⭐⭐⭐ |
-| Financial Viability | X% | ⭐⭐⭐ |
-| Timing & Market Readiness | X% | ⭐⭐⭐ |
+| Metric | Score | Assessment |
+|--------|-------|------------|
+| Overall Success Probability | X% | 🔴 / 🟡 / 🟢 |
+| Market Opportunity Size | X% | 🔴 / 🟡 / 🟢 |
+| Problem-Solution Fit | X% | 🔴 / 🟡 / 🟢 |
+| Competitive Defensibility | X% | 🔴 / 🟡 / 🟢 |
+| Team & Execution Readiness | X% | 🔴 / 🟡 / 🟢 |
+| Financial Viability | X% | 🔴 / 🟡 / 🟢 |
+| Market Timing | X% | 🔴 / 🟡 / 🟢 |
 
-Rating: ⭐ = Weak (0-40%) · ⭐⭐ = Moderate (41-69%) · ⭐⭐⭐ = Strong (70-100%)
-
----
-
-## 🎯 Market Analysis
-- **Total Addressable Market (TAM):** [number]
-- **Serviceable Addressable Market (SAM):** [number]
-- **Serviceable Obtainable Market (SOM):** [3-year target]
-- **Market Growth Rate:** [%/year]
-- **Key Trends:** [3-5 bullets]
+🔴 = Weak (0–40%) · 🟡 = Moderate (41–69%) · 🟢 = Strong (70–100%)
 
 ---
 
-## 💡 Comprehensive Idea Assessment
+## 🏢 Executive Summary
 
-### ✅ Key Strengths & Opportunities
-(What makes this idea uniquely powerful and scalable)
+*Write 3 confident, specific paragraphs: What this idea is really about, what the core bet is, and the overall verdict. No fluff.*
 
-### ❌ Critical Risks & Flaws
-(The most dangerous assumptions and weaknesses that must be addressed)
+---
+
+## 🎯 Market Intelligence
+
+| Dimension | Assessment |
+|-----------|------------|
+| **Total Addressable Market** | $X billion |
+| **Serviceable Market (SAM)** | $X million |
+| **3-Year Reachable Market (SOM)** | $X million |
+| **Market Growth Rate** | X% annually |
+| **Market Maturity** | Emerging / Growing / Mature |
+
+**Key Market Dynamics:**
+- [3–5 specific trends shaping this market RIGHT NOW]
+
+---
+
+## 💡 Idea Assessment
+
+### What Works — Genuine Strengths
+*List 3–5 real, specific strengths. Why this idea has a real shot. Name actual comparable successes.*
+
+### What Needs Work — Critical Gaps
+*List 3–5 real, specific risks or weaknesses. Be direct. Name exact competitors or failure modes.*
+
+### The Core Strategic Question
+*What is the ONE most important thing this founder must get right? Frame it as a clear hypothesis to test.*
 
 ---
 
 ## 🏆 Competitive Landscape
-(Real competitors, positioning, and how this idea differentiates)
+
+*Name real, specific competitors. Analyze their positioning. Explain exactly how and why this idea can differentiate — or where it will struggle to stand out.*
 
 ---
 
-## ⚠️ Top Risk Mitigation Priorities
-| Risk | Severity | How to Mitigate |
-|------|----------|-----------------|
-| ... | 🔴 High / 🟡 Med / 🟢 Low | ... |
+## ⚠️ Risk Register
+
+| Risk Factor | Probability | Impact | Mitigation Strategy |
+|-------------|-------------|--------|---------------------|
+| [Specific risk 1] | High / Med / Low | High / Med / Low | [Specific mitigation] |
+| [Specific risk 2] | High / Med / Low | High / Med / Low | [Specific mitigation] |
+| [Specific risk 3] | High / Med / Low | High / Med / Low | [Specific mitigation] |
+| [Specific risk 4] | High / Med / Low | High / Med / Low | [Specific mitigation] |
 
 ---
 
-## 💰 Path to Revenue
-(Specific, realistic Year 1, Year 2, Year 3 projections)
+## 💰 Revenue Projections & Business Model
+
+**Revenue Model Assessment:** [How strong is the monetization approach?]
+
+| Period | Revenue Estimate | Key Driver |
+|--------|-----------------|------------|
+| Year 1 | $X–$Y | [What drives it] |
+| Year 2 | $X–$Y | [What drives it] |
+| Year 3 | $X–$Y | [What drives it] |
+
+**Path to Profitability:** [Specific, realistic timeline with key milestones]
 
 ---
 
-## 🚀 Recommended Next Steps
-(Specific, actionable next steps for THIS idea — not generic advice)
+## 🚀 Go-to-Market & First Moves
+
+**The 3 Moves to Make in the Next 90 Days:**
+1. **[Specific Action]** — [Why this is the right first move and how to execute it]
+2. **[Specific Action]** — [Why this matters and concrete steps]
+3. **[Specific Action]** — [What this unlocks and how to measure success]
 
 ---
 
-## 🎓 Final Verdict
-(Your definitive, final verdict. Should they pursue this? What ONE assumption must they validate first?)
+## 🎓 Investment Verdict
+
+*Write a direct, confident 2-3 paragraph verdict. Should the founder pursue this? What is the single most important assumption to validate before anything else? What would make this idea investable at Series A? Be bold. Be specific.*
 
 ---
 
-Be specific to THIS idea. Generic advice is unacceptable. Provide the most thorough, battle-tested analysis possible.`;
+This analysis is based on the founder's submitted information and current market data. Execution quality will be the ultimate determinant of success.`;
 
-    // ── STEP 3: Stream the synthesis to the client (Using GLM key for synthesis) ──
-    const synthesisRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+    // ── Stream the synthesis to the client ───────────────────────
+    const synthesisRes = await fetch(NVIDIA_BASE, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${glmApiKey}`
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${primaryKey}` },
       body: JSON.stringify({
-        model: 'meta/llama-3.1-8b-instruct', // using fast model for the final synthesis
+        model: MODEL,
         messages: [
-          { role: 'assistant', content: synthesisPrompt },
-          { role: 'user', content: 'Synthesize the two brain analyses into the final comprehensive dual-brain validation report now.' }
+          { role: 'system', content: synthesisSystem },
+          {
+            role: 'user',
+            content: `Here are the two internal analyst briefs. Write the final Validation Report now.
+
+=== RISK & VIABILITY BRIEF ===
+${riskBrief}
+
+=== MARKET OPPORTUNITY BRIEF ===
+${opportunityBrief}
+
+=== FOUNDER'S IDEA (for reference) ===
+${answersText}
+
+Now write the complete, professional Validation Report in the exact format specified. Be deeply specific to this idea.`
+          }
         ],
-        temperature: 0.75,
-        top_p: 0.95,
+        temperature: 0.7,
+        top_p: 0.92,
         max_tokens: 4096,
         stream: true
       })
     });
 
     if (!synthesisRes.ok) {
-      const errorText = await synthesisRes.text();
-      throw new Error(`Synthesis brain failed: ${synthesisRes.statusText} - ${errorText}`);
+      const errText = await synthesisRes.text().catch(() => synthesisRes.statusText);
+      throw new Error(`Report generation failed: ${synthesisRes.status} — ${errText}`);
     }
 
-    // Stream the final synthesis directly to the client
     return new Response(synthesisRes.body, {
       headers: {
         'Content-Type': 'text/event-stream',
@@ -270,7 +295,10 @@ Be specific to THIS idea. Generic advice is unacceptable. Provide the most thoro
     });
 
   } catch (error: any) {
-    console.error('[POST /api/ai/idea-validator]', error);
-    return NextResponse.json({ success: false, error: error.message || 'Dual-brain analysis failed.' }, { status: 500 });
+    console.error('[POST /api/ai/idea-validator]', error?.message || error);
+    return NextResponse.json({
+      success: false,
+      error: error?.message || 'Analysis failed. Please try again.'
+    }, { status: 500 });
   }
 }
