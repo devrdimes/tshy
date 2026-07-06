@@ -112,9 +112,20 @@ The 10 steps must cover: Market Research, Value Proposition, Business Model, Fin
     // Parse — try to extract JSON even if there's surrounding text
     let parsedSteps;
     try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found in response');
-      const parsed = JSON.parse(jsonMatch[0]);
+      const startObj = responseText.indexOf('{');
+      const startArr = responseText.indexOf('[');
+      const startIndex = startObj !== -1 && startArr !== -1 ? Math.min(startObj, startArr) : Math.max(startObj, startArr);
+      
+      const endObj = responseText.lastIndexOf('}');
+      const endArr = responseText.lastIndexOf(']');
+      const endIndex = endObj !== -1 && endArr !== -1 ? Math.max(endObj, endArr) : Math.max(endObj, endArr);
+      
+      if (startIndex === -1 || endIndex === -1) {
+        throw new Error('No JSON found in response');
+      }
+      
+      const jsonStr = responseText.substring(startIndex, endIndex + 1);
+      const parsed = JSON.parse(jsonStr);
       parsedSteps = parsed.steps || parsed;
     } catch {
       // Last resort: try raw parse

@@ -48,6 +48,9 @@ export function IdeaValidatorView() {
   const [report, setReport] = useState("")
   const [streaming, setStreaming] = useState(false)
   const [successScore, setSuccessScore] = useState<number | null>(null)
+  
+  // Prevent hydration mismatch
+  const [isMounted, setIsMounted] = useState(false)
   const [generatingPlan, setGeneratingPlan] = useState(false)
   const [planStep, setPlanStep] = useState<string>("") // which step of generation we're on
   const [questionError, setQuestionError] = useState("")
@@ -59,6 +62,44 @@ export function IdeaValidatorView() {
   const totalQuestions = allQuestions.length
   const progress = totalQuestions > 0 ? ((currentQ + 1) / totalQuestions) * 100 : 0
   const q = allQuestions[currentQ]
+
+  // Load state from localStorage on mount
+  useEffect(() => {
+    setIsMounted(true)
+    const savedState = localStorage.getItem("tashyeed_idea_validator_state")
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState)
+        // Only load if it's not a loading/streaming phase to prevent getting stuck
+        if (parsed.phase && parsed.phase !== "loading" && parsed.phase !== "generating-questions") {
+          setPhase(parsed.phase)
+          setIdeaText(parsed.ideaText || "")
+          setDynamicQuestions(parsed.dynamicQuestions || [])
+          setCurrentQ(parsed.currentQ || 0)
+          setAnswers(parsed.answers || {})
+          setReport(parsed.report || "")
+          setSuccessScore(parsed.successScore || null)
+        }
+      } catch (e) {
+        console.error("Failed to parse saved Idea Validator state", e)
+      }
+    }
+  }, [])
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (!isMounted) return
+    const stateToSave = {
+      phase: streaming ? "loading" : phase, // don't save streaming state
+      ideaText,
+      dynamicQuestions,
+      currentQ,
+      answers,
+      report,
+      successScore
+    }
+    localStorage.setItem("tashyeed_idea_validator_state", JSON.stringify(stateToSave))
+  }, [phase, ideaText, dynamicQuestions, currentQ, answers, report, successScore, streaming, isMounted])
 
   useEffect(() => {
     if ((phase === "quiz" || phase === "idea-input") && textareaRef.current) {
@@ -136,6 +177,7 @@ export function IdeaValidatorView() {
     setSuccessScore(null)
     setGeneratingPlan(false)
     setQuestionError("")
+    localStorage.removeItem("tashyeed_idea_validator_state")
   }
 
   const handleGeneratePlan = async () => {
