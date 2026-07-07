@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
+import { useTranslation } from "@/lib/i18n"
 
 // ── Types ──────────────────────────────────────────────────────
 type Phase = "intro" | "idea-input" | "generating-questions" | "quiz" | "loading" | "report"
@@ -38,7 +39,7 @@ const IDEA_QUESTION: DynamicQuestion = {
 
 // ── Main Component ─────────────────────────────────────────────
 export function IdeaValidatorView() {
-  const { language } = useAppStore()
+  const { language, t } = useTranslation()
   const [phase, setPhase] = useState<Phase>("intro")
   const [ideaText, setIdeaText] = useState("")
   const [dynamicQuestions, setDynamicQuestions] = useState<DynamicQuestion[]>([])
@@ -182,10 +183,10 @@ export function IdeaValidatorView() {
 
   const handleGeneratePlan = async () => {
     setGeneratingPlan(true)
-    setPlanStep("Saving your idea as a new business...")
+    setPlanStep(t('idea.saving'))
 
     const token = localStorage.getItem('tashyeed_token')
-    const lang = useAppStore.getState().language
+    const lang = language
 
     // ── Step 1: Create the business ──────────────────────────────
     let createdBusiness: any = null
@@ -220,10 +221,11 @@ export function IdeaValidatorView() {
 
     // ── Step 2: Generate execution plan (blocking) ───────────────
     try {
-      setPlanStep("Generating your 10-step execution plan...")
+      setPlanStep(t('idea.generatingPlan'))
       const resPlan = await fetch(`/api/business/${businessId}/generate-plan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ language: lang })
       })
       let planData: any = {}
       try { planData = await resPlan.json() } catch { /* ignore */ }
@@ -240,7 +242,7 @@ export function IdeaValidatorView() {
       }))
 
       // ── Step 3: Navigate to planner NOW (plan steps already in store) ──
-      setPlanStep("Opening your planner...")
+      setPlanStep(t('idea.opening'))
       await new Promise(r => setTimeout(r, 300))
       setGeneratingPlan(false)
       setPlanStep("")
@@ -369,19 +371,16 @@ export function IdeaValidatorView() {
             <Brain className="w-12 h-12 text-white" />
           </div>
 
-          <h1 className="text-4xl font-bold text-foreground mb-4">AI Idea Validator</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-4">{t('idea.title')}</h1>
           <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-            Tell us your idea in one sentence. Our AI will{" "}
-            <strong>read it, understand it</strong>, then generate{" "}
-            <strong>questions tailored specifically to your type of business</strong> —
-            not a generic one-size-fits-all quiz.
+            {t('idea.subtitle')}
           </p>
 
           <div className="grid grid-cols-3 gap-4 mb-10">
             {[
-              { icon: Wand2, label: "Smart Questions", desc: "AI tailors every question to your idea" },
-              { icon: Sparkles, label: "Success Score", desc: "Honest % probability" },
-              { icon: Brain, label: "VC-Grade Report", desc: "McKinsey-level analysis" }
+              { icon: Wand2, label: t('idea.smartQuestions'), desc: t('idea.smartQuestionsDesc') },
+              { icon: Sparkles, label: t('idea.successScore'), desc: t('idea.successScoreDesc') },
+              { icon: Brain, label: t('idea.vcReport'), desc: t('idea.vcReportDesc') }
             ].map(({ icon: Icon, label, desc }) => (
               <div key={label} className="bg-card border border-border rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
                 <Icon className="w-6 h-6 text-violet-500 mb-2 mx-auto" />
@@ -396,7 +395,7 @@ export function IdeaValidatorView() {
             size="lg"
             className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white px-10 py-6 text-lg rounded-2xl shadow-xl shadow-violet-500/25 hover:shadow-2xl hover:shadow-violet-500/30 hover:-translate-y-0.5 transition-all"
           >
-            Start Validation <ArrowRight className="ml-2 w-5 h-5" />
+            {t('idea.start')} <ArrowRight className="ml-2 w-5 h-5" />
           </Button>
           <p className="text-xs text-muted-foreground mt-4">9 total questions · Fully personalized · No fluff</p>
         </motion.div>
@@ -707,12 +706,11 @@ export function IdeaValidatorView() {
             <CheckCircle2 className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="font-bold text-foreground text-lg">VC Validation Report</h2>
-            <p className="text-xs text-muted-foreground">Multi-perspective analysis · Synthesized by AI · VC-grade</p>
+            <h2 className="text-2xl font-bold text-foreground">{t('idea.reportTitle')}</h2>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
-          <RotateCcw className="w-4 h-4" /> New Idea
+        <Button variant="outline" size="sm" onClick={handleReset}>
+          <RotateCcw className="w-4 h-4 mr-2" /> {t('idea.startOver')}
         </Button>
       </div>
 
@@ -721,9 +719,9 @@ export function IdeaValidatorView() {
         className="bg-card border border-border rounded-3xl p-8 shadow-lg overflow-y-auto max-h-[calc(100vh-280px)] scroll-smooth"
       >
         {streaming && !report && (
-          <div className="flex items-center gap-3 text-muted-foreground">
-            <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
-            <span className="text-sm">Generating your report...</span>
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <Loader2 className="w-12 h-12 animate-spin text-violet-500 mb-4" />
+            <h2 className="text-2xl font-semibold text-foreground">{t('idea.generating')}</h2>
           </div>
         )}
 
@@ -744,48 +742,43 @@ export function IdeaValidatorView() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1 }}
-            className={`mt-12 border rounded-2xl p-6 text-center ${
-              successScore >= 40 
-                ? "bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border-violet-500/20" 
-                : "bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20"
-            }`}
+            className="mt-12 border rounded-2xl overflow-hidden"
           >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-lg ${
-              generatingPlan ? "bg-violet-500 shadow-violet-500/30 animate-pulse"
-              : successScore >= 40 ? "bg-violet-500 shadow-violet-500/30" : "bg-amber-500 shadow-amber-500/30"
-            }`}>
-              {generatingPlan ? <Loader2 className="w-6 h-6 animate-spin" /> : successScore >= 40 ? <Sparkles className="w-6 h-6" /> : <Brain className="w-6 h-6" />}
+            <div className="p-8 bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/20 dark:to-indigo-950/20 border-t border-border flex flex-col items-center justify-center text-center">
+              <h3 className="text-2xl font-bold text-foreground mb-4">
+                🎉 {t('idea.scorePrefix')} {successScore}%, {t('idea.scoreSuffix')}
+              </h3>
+              
+              <Button
+                onClick={handleGeneratePlan}
+                disabled={generatingPlan}
+                className="bg-violet-600 hover:bg-violet-700 text-white px-8 py-6 text-lg rounded-xl w-full max-w-md shadow-lg shadow-violet-500/25 relative overflow-hidden"
+              >
+                {generatingPlan ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                    <div className="flex flex-col items-start">
+                      <span className="font-semibold text-sm">{t('idea.working')}</span>
+                      <span className="text-xs text-white/70 font-normal">{planStep}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Lightbulb className="w-5 h-5 mr-3" />
+                    {t('idea.generatePlan')}
+                  </>
+                )}
+              </Button>
             </div>
             
-            {!generatingPlan && successScore >= 40 && (
-              <>
-                <h3 className="text-xl font-bold text-foreground mb-2">Congratulations! 🎉</h3>
-                <p className="text-muted-foreground mb-6">
-                  Your idea scored <strong>{successScore}%</strong>, which means it has strong potential.
-                  Let our AI generate a comprehensive 10-step execution plan <strong>and</strong> a professional investor pitch deck.
-                </p>
-              </>
-            )}
-
-            {!generatingPlan && successScore < 40 && (
-              <>
-                <h3 className="text-xl font-bold text-foreground mb-2">Don&apos;t Give Up! 💡</h3>
-                <p className="text-muted-foreground mb-6">
-                  Your idea scored <strong>{successScore}%</strong>. Every great idea needs refinement.
-                  We&apos;ll generate a 10-step plan to help you pivot, validate your assumptions, and strengthen the concept.
-                </p>
-              </>
-            )}
-
-            {generatingPlan ? (
-              <div className="space-y-4">
-                <p className="text-base font-semibold text-foreground">{planStep || "Working on it..."}</p>
+            {generatingPlan && (
+              <div className="p-6 bg-card border-t border-border">
                 <div className="flex justify-center gap-2">
                   {[
-                    { label: "Setup", done: true },
-                    { label: "Plan", done: planStep.toLowerCase().includes("plan") || planStep.toLowerCase().includes("pitch") || planStep.toLowerCase().includes("final") },
-                    { label: "Pitch Deck", done: planStep.toLowerCase().includes("pitch") || planStep.toLowerCase().includes("final") },
-                    { label: "Done", done: planStep.toLowerCase().includes("final") },
+                    { label: t('idea.planSetup'), done: true },
+                    { label: t('idea.planPlan'), done: planStep !== t('idea.saving') && planStep !== t('idea.generatingPlan') },
+                    { label: t('idea.planPitchDeck'), done: planStep === t('idea.opening') },
+                    { label: t('idea.planDone'), done: planStep === t('idea.opening') },
                   ].map(({ label, done }) => (
                     <div key={label} className="flex flex-col items-center gap-1">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500 ${done ? "bg-violet-500 text-white shadow-md shadow-violet-500/30" : "bg-muted text-muted-foreground"}`}>
@@ -797,13 +790,6 @@ export function IdeaValidatorView() {
                 </div>
                 <p className="text-xs text-muted-foreground">Please wait — this takes about 30-60 seconds</p>
               </div>
-            ) : (
-              <Button
-                onClick={handleGeneratePlan}
-                className={`${successScore >= 40 ? "bg-violet-600 hover:bg-violet-700" : "bg-amber-600 hover:bg-amber-700"} text-white font-medium px-8 gap-2`}
-              >
-                <CheckCircle2 className="w-4 h-4" /> Generate Plan &amp; Pitch Deck
-              </Button>
             )}
           </motion.div>
         )}

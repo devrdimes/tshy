@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { fadeIn, EmptyState } from "./shared"
+import { useTranslation } from "@/lib/i18n"
 
 // ─── Category config for colored borders & icons ─────────────────────────
 const CATEGORY_STYLES: Record<string, { border: string; bg: string; icon: React.ElementType }> = {
@@ -33,6 +34,7 @@ const CATEGORY_STYLES: Record<string, { border: string; bg: string; icon: React.
 // ─── Enhanced Checklist ─────────────────────────────────────────────────
 function StepChecklist({ step, businessId }: { step: PlanStep; businessId: string }) {
   const { refreshBusiness } = useAppStore()
+  const { t } = useTranslation()
   const items = JSON.parse(step.checklist || "[]") as string[]
   const checkedCount = items.filter(i => i.startsWith("✅")).length
   const total = items.length
@@ -51,8 +53,8 @@ function StepChecklist({ step, businessId }: { step: PlanStep; businessId: strin
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-medium text-muted-foreground">Checklist</p>
-        <span className="text-xs text-muted-foreground">{checkedCount}/{total} complete</span>
+        <p className="text-sm font-medium text-muted-foreground">{t('planner.checklist')}</p>
+        <span className="text-xs text-muted-foreground">{checkedCount}/{total} {t('planner.completeWord')}</span>
       </div>
       {/* Micro progress bar */}
       <div className="h-1.5 rounded-full bg-muted mb-3 overflow-hidden">
@@ -96,6 +98,7 @@ function StepChecklist({ step, businessId }: { step: PlanStep; businessId: strin
 // ─── Step Actions ─────────────────────────────────────────────────────────
 function StepActions({ step, businessId, onCelebrate }: { step: PlanStep; businessId: string; onCelebrate?: () => void }) {
   const { refreshBusiness } = useAppStore()
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
 
   const updateStatus = async (status: string) => {
@@ -110,14 +113,14 @@ function StepActions({ step, businessId, onCelebrate }: { step: PlanStep; busine
 
   return (
     <div className="flex flex-wrap gap-2 pt-2">
-      {step.status === "locked" && <span className="text-sm text-muted-foreground flex items-center gap-1"><Lock className="w-4 h-4" /> Complete previous step to unlock</span>}
-      {step.status === "current" && <Button size="sm" onClick={() => updateStatus("in_progress")} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">{loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Play className="w-4 h-4 mr-1" />}Start</Button>}
+      {step.status === "locked" && <span className="text-sm text-muted-foreground flex items-center gap-1"><Lock className="w-4 h-4" /> {t('planner.unlockMsg')}</span>}
+      {step.status === "current" && <Button size="sm" onClick={() => updateStatus("in_progress")} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">{loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Play className="w-4 h-4 mr-1" />}{t('planner.start')}</Button>}
       {step.status === "in_progress" && <>
-        <Button size="sm" onClick={() => updateStatus("completed")} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">{loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}Complete</Button>
-        <Button size="sm" variant="outline" onClick={() => updateStatus("skipped")} disabled={loading}><SkipForward className="w-4 h-4 mr-1" />Skip</Button>
+        <Button size="sm" onClick={() => updateStatus("completed")} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">{loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}{t('planner.complete')}</Button>
+        <Button size="sm" variant="outline" onClick={() => updateStatus("skipped")} disabled={loading}><SkipForward className="w-4 h-4 mr-1" />{t('planner.skip')}</Button>
       </>}
-      {step.status === "completed" && <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><CheckCircle2 className="w-3 h-3 mr-1" />Completed</Badge>}
-      {step.status === "skipped" && <Badge className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"><SkipForward className="w-3 h-3 mr-1" />Skipped</Badge>}
+      {step.status === "completed" && <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><CheckCircle2 className="w-3 h-3 mr-1" />{t('planner.status.completed')}</Badge>}
+      {step.status === "skipped" && <Badge className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"><SkipForward className="w-3 h-3 mr-1" />{t('planner.skipped')}</Badge>}
     </div>
   )
 }
@@ -125,6 +128,7 @@ function StepActions({ step, businessId, onCelebrate }: { step: PlanStep; busine
 // ─── Step Tasks Section (New Feature) ────────────────────────────────────
 function StepTasksSection({ step, businessId }: { step: PlanStep; businessId: string }) {
   const { tasks, refreshTasks } = useAppStore()
+  const { t } = useTranslation()
   const [generating, setGenerating] = useState(false)
 
   const stepTasks = tasks.filter(t => t.planStepId === step.id)
@@ -153,10 +157,10 @@ function StepTasksSection({ step, businessId }: { step: PlanStep; businessId: st
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
           <ListTodo className="w-3.5 h-3.5" />
-          Tasks for this step
+          {t('planner.tasksForStep')}
         </p>
         {stepTasks.length > 0 && (
-          <span className="text-xs text-muted-foreground">{completedStepTasks}/{stepTasks.length} done</span>
+          <span className="text-xs text-muted-foreground">{completedStepTasks}/{stepTasks.length} {t('planner.completeWord')}</span>
         )}
       </div>
       {stepTasks.length > 0 ? (
@@ -182,7 +186,7 @@ function StepTasksSection({ step, businessId }: { step: PlanStep; businessId: st
           ))}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground mb-3">No tasks yet for this step.</p>
+        <p className="text-xs text-muted-foreground mb-3">{t('planner.noTasks')}</p>
       )}
       <Button
         size="sm"
@@ -192,9 +196,9 @@ function StepTasksSection({ step, businessId }: { step: PlanStep; businessId: st
         className="w-full"
       >
         {generating ? (
-          <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Generating...</>
+          <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />{t('planner.generating')}</>
         ) : (
-          <><Lightbulb className="w-3.5 h-3.5 mr-1.5" />Generate Suggested Tasks</>
+          <><Lightbulb className="w-3.5 h-3.5 mr-1.5" />{t('planner.generateTasks')}</>
         )}
       </Button>
     </div>
@@ -204,10 +208,11 @@ function StepTasksSection({ step, businessId }: { step: PlanStep; businessId: st
 // ─── Main Planner Component ────────────────────────────────────────────────
 export function Planner({ onCelebrate }: { onCelebrate?: () => void }) {
   const { currentBusiness, tasks } = useAppStore()
+  const { t } = useTranslation()
   const [selectedStep, setSelectedStep] = useState<PlanStep | null>(null)
 
   const biz = currentBusiness
-  if (!biz) return <EmptyState icon={Rocket} title="No Business Selected" description="Select or create a business to view your plan" />
+  if (!biz) return <EmptyState icon={Rocket} title={t('planner.noBusiness')} description={t('planner.noBusinessDesc')} />
 
   const steps = biz.planSteps || []
   const completedSteps = steps.filter(s => s.status === "completed").length
@@ -222,8 +227,8 @@ export function Planner({ onCelebrate }: { onCelebrate?: () => void }) {
       <Card className="border-border shadow-sm overflow-hidden">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-foreground">Plan Progress</h3>
-            <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{completedSteps}/{steps.length} steps &bull; {progress}%</span>
+            <h3 className="font-semibold text-foreground">{t('planner.planProgress')}</h3>
+            <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{completedSteps}/{steps.length} {t('planner.steps')} &bull; {progress}%</span>
           </div>
           {/* Animated gradient progress bar */}
           <div className="relative h-4 rounded-full bg-muted overflow-hidden">

@@ -24,6 +24,16 @@ export async function POST(
       );
     }
 
+    let reqBody: any = {};
+    try { reqBody = await request.json(); } catch { /* ignore */ }
+    const lang = reqBody.language || 'en';
+
+    const langInstructions: Record<string, string> = {
+      en: "Respond entirely in English.",
+      ar: "يجب أن تكون جميع إجاباتك ومخرجاتك باللغة العربية حصراً.",
+      fr: "Répondez entièrement en français.",
+    };
+
     const businessContext = `
 Business Name: ${business.name}
 Description: ${business.description}
@@ -60,8 +70,9 @@ Monthly Burn Rate: $${business.monthlyBurnRate}
           model: 'meta/llama-3.1-8b-instruct',
           messages: [
             {
-              role: 'assistant',
-              content: `You are an elite business strategist. Generate exactly 10 actionable business plan steps for the startup below. Be specific to this business — no generic advice.
+              role: 'system',
+              content: `You are an elite business strategist. ${langInstructions[lang]}
+Generate exactly 10 actionable business plan steps for the startup below. Be specific to this business — no generic advice.
 
 Return ONLY a valid JSON object. No markdown, no text outside JSON.
 
@@ -82,7 +93,8 @@ Format:
   ]
 }
 
-The 10 steps must cover: Market Research, Value Proposition, Business Model, Financial Planning, Legal Setup, Product Development, Marketing Strategy, Operations, Team Building, Launch Strategy. Tailor each step to the specific business context.`,
+The 10 steps must cover: Market Research, Value Proposition, Business Model, Financial Planning, Legal Setup, Product Development, Marketing Strategy, Operations, Team Building, Launch Strategy. Tailor each step to the specific business context.
+CRITICAL: The "category" field MUST remain strictly in English, using exactly one of the provided options (e.g. "research", "strategy", etc), even if you are translating the rest of the content.`,
             },
             {
               role: 'user',
