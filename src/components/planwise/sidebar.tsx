@@ -139,7 +139,6 @@ function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navI
         </div>
       )}
 
-      {/* Navigation */}
       <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon
@@ -147,7 +146,11 @@ function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navI
           return (
             <Tooltip key={item.id}>
               <TooltipTrigger asChild>
-                <button onClick={() => setActiveView(item.id as typeof activeView)} className={cn("w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all", isActive ? "bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 shadow-sm dark:from-emerald-950 dark:to-emerald-900/30 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/50" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
+                <button 
+                  onClick={() => setActiveView(item.id as typeof activeView)} 
+                  className={cn("w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all", isActive ? "bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 shadow-sm dark:from-emerald-950 dark:to-emerald-900/30 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/50" : "text-muted-foreground hover:bg-accent hover:text-foreground")}
+                  data-sanad-id={`sidebar-${item.id}`}
+                >
                   <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all", isActive ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20" : "bg-transparent")}>
                     <Icon className="w-4 h-4" />
                   </div>

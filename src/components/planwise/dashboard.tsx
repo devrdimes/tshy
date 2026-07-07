@@ -50,7 +50,7 @@ function HealthScoreWidget({ progress, completedSteps, totalSteps, pendingTasks,
   const healthColor = healthScore >= 75 ? "text-emerald-600" : healthScore >= 50 ? "text-amber-600" : healthScore >= 30 ? "text-orange-600" : "text-red-600"
 
   return (
-    <Card className="border-border shadow-sm overflow-hidden">
+    <Card className="border-border shadow-sm overflow-hidden" data-sanad-id="dashboard-health-score">
       <CardContent className="p-5">
         <div className="flex items-center gap-6">
           <CircularProgress value={healthScore} size={100} strokeWidth={7} label="Health" />
@@ -384,7 +384,7 @@ export function Dashboard({ onCelebrate }: { onCelebrate?: () => void }) {
             {biz ? `Your "${biz.name}" business is ${progress}% complete. ${progress < 50 ? "Keep pushing — every step counts!" : progress < 100 ? "You're making great progress! Almost there." : "Congratulations! Your plan is complete!"}` : "Start building your business plan with guidance."}
           </p>
           <div className="flex flex-wrap gap-3 mt-5">
-            {biz && <Button size="sm" variant="secondary" onClick={() => setActiveView("planner")} className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"><ListTodo className="w-4 h-4 mr-2" />Continue Planning</Button>}
+            {biz && <Button size="sm" variant="secondary" onClick={() => setActiveView("planner")} className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5" data-sanad-id="dashboard-continue-planning"><ListTodo className="w-4 h-4 mr-2" />Continue Planning</Button>}
             <Button size="sm" variant="secondary" onClick={() => useAppStore.getState().setChatOpen(true)} className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"><Lightbulb className="w-4 h-4 mr-2" />Ask Advisor</Button>
             {biz && <Button size="sm" variant="secondary" onClick={() => setActiveView("analysis")} className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm transition-all hover:-translate-y-0.5"><BarChart3 className="w-4 h-4 mr-2" />Run Business Analysis</Button>}
           </div>
@@ -407,7 +407,7 @@ export function Dashboard({ onCelebrate }: { onCelebrate?: () => void }) {
       {/* Two Column Layout */}
       <div className="grid md:grid-cols-3 gap-6">
         <motion.div variants={fadeIn} className="md:col-span-2">
-          <Card className="border-border shadow-sm">
+          <Card className="border-border shadow-sm" data-sanad-id="dashboard-active-step">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Current Step</CardTitle>

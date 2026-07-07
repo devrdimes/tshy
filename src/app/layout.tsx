@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "next-themes";
 import { RtlProvider } from "@/components/rtl-provider";
 import { SanadWidget } from "@/components/sanad/SanadWidget";
+import { SanadGuideOverlay } from "@/components/sanad/SanadGuideOverlay";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,6 +62,7 @@ export default function RootLayout({
           <RtlProvider>
             {children}
             <Toaster />
+            <SanadGuideOverlay />
             <SanadWidget />
           </RtlProvider>
         </ThemeProvider>
