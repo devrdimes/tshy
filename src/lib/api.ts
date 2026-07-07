@@ -295,6 +295,40 @@ export async function chatWithAdvisor(
   })
 }
 
+export async function chatWithSanad(data: {
+  message: string
+  language?: 'en' | 'ar' | 'fr'
+  page?: string
+  business?: {
+    name?: string | null
+    description?: string | null
+    industry?: string | null
+    stage?: string | null
+    targetMarket?: string | null
+    revenueModel?: string | null
+    initialCapital?: number | null
+    monthlyBurnRate?: number | null
+    completedSteps?: number
+    totalSteps?: number
+  } | null
+  currentStep?: {
+    title?: string | null
+    description?: string | null
+    status?: string | null
+  } | null
+  taskSummary?: {
+    pending: number
+    inProgress: number
+    completed: number
+  }
+  messages?: { role: 'user' | 'assistant' | 'system'; content: string }[]
+}): Promise<{ success: boolean; reply: string; provider?: string; model?: string }> {
+  return apiRequest('/api/sanad', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
 export async function generateSuggestedTasks(
   businessId: string,
   stepId?: string,

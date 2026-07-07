@@ -10,7 +10,7 @@
  * 4. Gate visibility: never shows on /admin, /login, /signup.
  * 5. Render floating avatar + speech bubble (when closed).
  * 6. Render the chat panel (when open).
- * 7. Handle mock AI responses for Phase 1 (real GLM in Phase 5).
+ * 7. Send user questions to the server-side Sanad AI endpoint.
  *
  * Positioning:
  * - Desktop: bottom-right (or bottom-left in RTL)
@@ -24,6 +24,7 @@ import { useSanadStore } from '@/lib/sanad-store'
 import { useSanadGuideStore } from '@/lib/sanad-guide-store'
 import { ONBOARDING_GUIDE } from '@/lib/sanad-guides'
 import { useAppStore } from '@/lib/store'
+import { chatWithSanad } from '@/lib/api'
 import { useSanadAutoTriggers } from '@/hooks/useSanadAutoTriggers'
 import { SanadAvatar } from './SanadAvatar'
 import { SanadChatPanel } from './SanadChatPanel'
@@ -80,7 +81,7 @@ export function SanadWidget() {
   } = useSanadStore()
 
   const { startGuide } = useSanadGuideStore()
-  const { language, currentBusiness } = useAppStore()
+  const { language, currentBusiness, currentStep, tasks } = useAppStore()
   const pathname = usePathname() ?? ''
 
   // Fire auto-triggers
@@ -114,9 +115,9 @@ export function SanadWidget() {
   const latestAssistant = messages.filter((m) => m.role === 'assistant').pop()
 
   // ── Phase 1 mock AI handler ──────────────────────────────────
-  const handleUserMessage = (text: string) => {
+  const handleUserMessage = async (text: string) => {
     addMessage({ role: 'user', content: text })
-    
+
     // Developer backdoor to test Phase 2
     if (text.trim().toLowerCase() === '/tour') {
       minimize()
@@ -127,12 +128,55 @@ export function SanadWidget() {
     setThinking(true)
     setAnimationState('thinking')
 
-    setTimeout(() => {
-      const reply = getMockResponse(text, pageSlug, currentBusiness?.name ?? null, isRtl)
-      addMessage({ role: 'assistant', content: reply })
+    try {
+      const completedSteps = currentBusiness?.planSteps?.filter((step) => step.status === 'completed').length ?? 0
+      const taskSummary = {
+        pending: tasks.filter((task) => task.status === 'pending').length,
+        inProgress: tasks.filter((task) => task.status === 'in_progress').length,
+        completed: tasks.filter((task) => task.status === 'completed').length,
+      }
+
+      const res = await chatWithSanad({
+        message: text,
+        language,
+        page: pageSlug,
+        business: currentBusiness ? {
+          name: currentBusiness.name,
+          description: currentBusiness.description,
+          industry: currentBusiness.industry,
+          stage: currentBusiness.stage,
+          targetMarket: currentBusiness.targetMarket,
+          revenueModel: currentBusiness.revenueModel,
+          initialCapital: currentBusiness.initialCapital,
+          monthlyBurnRate: currentBusiness.monthlyBurnRate,
+          completedSteps,
+          totalSteps: currentBusiness.planSteps?.length ?? 0,
+        } : null,
+        currentStep: currentStep ? {
+          title: currentStep.title,
+          description: currentStep.description,
+          status: currentStep.status,
+        } : null,
+        taskSummary,
+        messages: messages
+          .filter((message) => message.role === 'user' || message.role === 'assistant')
+          .slice(-10)
+          .map((message) => ({ role: message.role, content: message.content })),
+      })
+
+      addMessage({ role: 'assistant', content: res.reply })
+    } catch (error) {
+      console.error('[SanadWidget] Failed to get AI response:', error)
+      addMessage({
+        role: 'assistant',
+        content: isRtl
+          ? 'تعذر علي الاتصال بخدمة الذكاء الاصطناعي الآن. تأكد من إعداد GLM_API_KEY في الخادم ثم حاول مرة أخرى.'
+          : 'I could not reach the AI service yet. Please make sure GLM_API_KEY is configured on the server, then try again.',
+      })
+    } finally {
       setThinking(false)
       setAnimationState('idle')
-    }, 1200)
+    }
   }
 
   // ── Positioning classes (RTL-aware) ──────────────────────────
