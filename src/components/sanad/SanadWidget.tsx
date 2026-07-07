@@ -24,6 +24,7 @@ import { useSanadStore } from '@/lib/sanad-store'
 import { useSanadGuideStore } from '@/lib/sanad-guide-store'
 import { ONBOARDING_GUIDE } from '@/lib/sanad-guides'
 import { useAppStore } from '@/lib/store'
+import { useSanadAutoTriggers } from '@/hooks/useSanadAutoTriggers'
 import { SanadAvatar } from './SanadAvatar'
 import { SanadChatPanel } from './SanadChatPanel'
 import { SanadSpeechBubble } from './SanadSpeechBubble'
@@ -81,6 +82,9 @@ export function SanadWidget() {
   const { startGuide } = useSanadGuideStore()
   const { language, currentBusiness } = useAppStore()
   const pathname = usePathname() ?? ''
+
+  // Fire auto-triggers
+  useSanadAutoTriggers()
 
   // ── Sync reduced-motion preference ──────────────────────────
   useEffect(() => {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { useSanadStore } from '@/lib/sanad-store';
+import { useSanadGuideStore } from '@/lib/sanad-guide-store';
 
 export interface SanadContext {
   page: string;
@@ -59,9 +60,11 @@ export function useSanadContext() {
   };
 
   // Contextual Welcome Messages
+  const { activeGuideId } = useSanadGuideStore();
+
   useEffect(() => {
-    // Prevent spamming if already welcomed on this page
-    if (hasWelcomed[page] || !currentBusiness) return;
+    // Prevent spamming if already welcomed on this page, or if a guide tour is running
+    if (hasWelcomed[page] || !currentBusiness || activeGuideId) return;
     
     // Only welcome if chat is empty except for the initial default message
     if (messages.length > 2) return;
