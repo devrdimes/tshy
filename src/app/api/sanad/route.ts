@@ -10,15 +10,13 @@ type ClientMessage = {
 }
 
 type ProviderConfig = {
-  provider: 'glm' | 'nvidia'
+  provider: 'nvidia'
   apiKey: string
   url: string
   model: string
   headers: Record<string, string>
 }
 
-const DEFAULT_GLM_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
-const DEFAULT_GLM_MODEL = 'glm-5.2'
 const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1'
 const DEFAULT_NVIDIA_MODEL = 'meta/llama-3.1-8b-instruct'
 
@@ -61,19 +59,7 @@ function languageInstruction(language: string) {
 }
 
 function getProviderConfig(): ProviderConfig | null {
-  const glmApiKey = process.env.GLM_API_KEY || process.env.ZAI_API_KEY || process.env.BIGMODEL_API_KEY
-
-  if (glmApiKey) {
-    return {
-      provider: 'glm',
-      apiKey: glmApiKey,
-      url: normalizeChatUrl(process.env.GLM_API_BASE_URL || process.env.ZAI_API_BASE_URL || DEFAULT_GLM_BASE_URL),
-      model: process.env.GLM_MODEL || DEFAULT_GLM_MODEL,
-      headers: { 'X-Z-AI-From': 'Tashyeed-Sanad' },
-    }
-  }
-
-  const nvidiaApiKey = process.env.NVIDIA_API_KEY
+  const nvidiaApiKey = process.env.NVIDIA_API_KEY2 || process.env.NVIDIA_API_KEY
   if (nvidiaApiKey) {
     return {
       provider: 'nvidia',
@@ -119,7 +105,7 @@ export async function POST(request: NextRequest) {
     const providerConfig = getProviderConfig()
     if (!providerConfig) {
       return NextResponse.json(
-        { success: false, error: 'Sanad AI is not configured. Add GLM_API_KEY on the server.' },
+        { success: false, error: 'Sanad AI is not configured. Add NVIDIA_API_KEY2 on the server.' },
         { status: 500 },
       )
     }
@@ -194,7 +180,6 @@ ${taskContext}`
         top_p: 0.9,
         max_tokens: 700,
         stream: false,
-        ...(providerConfig.provider === 'glm' ? { thinking: { type: 'disabled' } } : {}),
       }
 
       const completionRes = await fetch(providerConfig.url, {

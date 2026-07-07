@@ -170,8 +170,8 @@ export function SanadWidget() {
       addMessage({
         role: 'assistant',
         content: isRtl
-          ? 'تعذر علي الاتصال بخدمة الذكاء الاصطناعي الآن. تأكد من إعداد GLM_API_KEY في الخادم ثم حاول مرة أخرى.'
-          : 'I could not reach the AI service yet. Please make sure GLM_API_KEY is configured on the server, then try again.',
+          ? 'تعذر علي الاتصال بخدمة الذكاء الاصطناعي الآن. تأكد من إعداد NVIDIA_API_KEY2 في الخادم ثم حاول مرة أخرى.'
+          : 'I could not reach the AI service yet. Please make sure NVIDIA_API_KEY2 is configured on the server, then try again.',
       })
     } finally {
       setThinking(false)
