@@ -156,7 +156,7 @@ export function Financials() {
 
       {/* Generate Button */}
       <div className="flex justify-center">
-        <Button onClick={handleGenerate} disabled={generating} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 px-8">
+        <Button onClick={handleGenerate} disabled={generating} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 px-8" data-sanad-id="financials-generate">
           {generating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Generating Projections...</> : <><Lightbulb className="w-4 h-4 mr-2" />Generate Projections</>}
         </Button>
       </div>

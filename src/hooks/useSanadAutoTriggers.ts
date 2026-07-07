@@ -15,7 +15,7 @@ import { useAppStore } from '@/lib/store'
 
 export function useSanadAutoTriggers() {
   const pathname = usePathname() ?? ''
-  const { businesses, onboarded } = useAppStore()
+  const { businesses, user } = useAppStore()
   const { isGuideCompleted, startGuide, activeGuideId } = useSanadGuideStore()
   
   // Track if we've already checked this session to avoid React strict-mode double-fires
@@ -72,5 +72,5 @@ export function useSanadAutoTriggers() {
         trigger('pitch-deck-tour')
         break
     }
-  }, [pathname, businesses.length, onboarded, activeGuideId, isGuideCompleted, startGuide])
+  }, [pathname, businesses.length, user?.onboarded, activeGuideId, isGuideCompleted, startGuide])
 }

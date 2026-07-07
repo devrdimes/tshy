@@ -224,7 +224,7 @@ export function Planner({ onCelebrate }: { onCelebrate?: () => void }) {
   return (
     <div className="space-y-6">
       {/* ── Enhanced Progress Bar Card ─────────────────────────────── */}
-      <Card className="border-border shadow-sm overflow-hidden">
+      <Card className="border-border shadow-sm overflow-hidden" data-sanad-id="planner-progress">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-semibold text-foreground">{t('planner.planProgress')}</h3>
@@ -347,7 +347,8 @@ export function Planner({ onCelebrate }: { onCelebrate?: () => void }) {
                 isLocked && "opacity-60",
                 // Hover glow effect on active steps
                 isActive && !isSelected && "hover:shadow-emerald-100 dark:hover:shadow-emerald-950/30 hover:shadow-lg",
-              )}>
+              )}
+              data-sanad-id={idx === 0 ? 'planner-step-1' : undefined}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
                     {/* Step number / status icon */}

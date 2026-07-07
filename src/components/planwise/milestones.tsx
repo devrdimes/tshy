@@ -99,7 +99,7 @@ export function MilestonesView({ onCelebrate }: { onCelebrate?: () => void }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-foreground">Milestones</h3>
-        <Button onClick={() => setShowNew(true)} size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-md"><Plus className="w-4 h-4 mr-1" />Add Milestone</Button>
+        <Button onClick={() => setShowNew(true)} size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-md" data-sanad-id="milestones-add"><Plus className="w-4 h-4 mr-1" />Add Milestone</Button>
       </div>
 
       {/* New Milestone Form */}

@@ -3,8 +3,20 @@
 // State machine for the interactive guided tour engine
 // ============================================================
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import type { GuideStep, GuideId } from './sanad-guides'
+
+/** Returns a localStorage key scoped to the currently logged-in user's ID. */
+function getUserScopedKey(base: string): string {
+  if (typeof window === 'undefined') return base
+  try {
+    const token = localStorage.getItem('tashyeed_token')
+    if (!token) return base
+    return `${base}__${token.slice(0, 8)}`
+  } catch {
+    return base
+  }
+}
 
 interface CompletedGuides {
   [guideId: string]: boolean
@@ -109,7 +121,8 @@ export const useSanadGuideStore = create<SanadGuideState>()(
       isGuideCompleted: (guideId) => !!get().completedGuides[guideId],
     }),
     {
-      name: 'sanad-guide-state',
+      name: getUserScopedKey('sanad-guide-state'),
+      storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
         completedGuides: s.completedGuides,
         completedSteps: s.completedSteps,

@@ -3,7 +3,20 @@
 // State machine for the floating AI guide robot
 // ============================================================
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
+
+/** Returns a localStorage key scoped to the currently logged-in user's ID. */
+function getUserScopedKey(base: string): string {
+  if (typeof window === 'undefined') return base
+  try {
+    const token = localStorage.getItem('tashyeed_token')
+    if (!token) return base
+    // Use the first 8 chars of the token as a lightweight user discriminator
+    return `${base}__${token.slice(0, 8)}`
+  } catch {
+    return base
+  }
+}
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -120,7 +133,8 @@ export const useSanadStore = create<SanadState>()(
       clearMessages: () => set({ messages: [] }),
     }),
     {
-      name: 'sanad-ui-state',
+      name: getUserScopedKey('sanad-ui-state'),
+      storage: createJSONStorage(() => localStorage),
       // Only persist minimization preference, not transient UI state
       partialize: (s) => ({
         isMinimized: s.isMinimized,

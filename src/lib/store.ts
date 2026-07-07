@@ -201,6 +201,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   clearAuth: () => {
     if (typeof window !== 'undefined') {
+      // Clear all Sanad user-scoped localStorage keys before removing session
+      const token = localStorage.getItem('tashyeed_token')
+      if (token) {
+        const prefix = token.slice(0, 8)
+        const keysToRemove = Object.keys(localStorage).filter(
+          (k) => k.includes(`__${prefix}`)
+        )
+        keysToRemove.forEach((k) => localStorage.removeItem(k))
+      }
       localStorage.removeItem('tashyeed_token')
     }
     set({

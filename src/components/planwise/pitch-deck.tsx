@@ -85,9 +85,9 @@ export function PitchDeckView() {
       const opt = {
         margin: 0,
         filename: `${currentBusiness?.name || 'Startup'}_PitchDeck.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
+        image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'in', format: [13.33, 7.5], orientation: 'landscape' }
+        jsPDF: { unit: 'in', format: [13.33, 7.5] as [number, number], orientation: 'landscape' }
       }
       await html2pdf().set(opt).from(deckRef.current).save()
     } catch (e) {
@@ -171,6 +171,7 @@ export function PitchDeckView() {
               <Button
                 onClick={generatePitchDeck}
                 className="bg-emerald-600 hover:bg-emerald-700 h-12 px-8 text-base shadow-lg shadow-emerald-500/20"
+                data-sanad-id="pitch-deck-generate"
               >
                 <Sparkles className="w-5 h-5 mr-2" />
                 Generate Pitch Deck

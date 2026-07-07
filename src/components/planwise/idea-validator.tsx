@@ -447,6 +447,7 @@ export function IdeaValidatorView() {
                 onKeyDown={handleKeyDown}
                 placeholder={IDEA_QUESTION.placeholder}
                 className="min-h-[160px] resize-none text-sm bg-background border-muted-foreground/20 focus-visible:ring-violet-500 rounded-xl"
+                data-sanad-id="idea-validator-input"
               />
 
               {questionError && (

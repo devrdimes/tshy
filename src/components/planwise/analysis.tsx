@@ -109,7 +109,7 @@ export function AIAnalysisView() {
               <div className="flex items-center gap-2 mb-1"><Gauge className="w-5 h-5 text-emerald-400" /><h3 className="text-lg font-semibold">Business Analysis</h3></div>
               <p className="text-sm text-slate-400">Comprehensive SWOT analysis powered by AI</p>
             </div>
-            <Button onClick={runAnalysis} disabled={loading} variant="secondary" className="bg-white/10 hover:bg-white/20 text-white border-white/20">
+            <Button onClick={runAnalysis} disabled={loading} variant="secondary" className="bg-white/10 hover:bg-white/20 text-white border-white/20" data-sanad-id="analysis-generate">
               {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Analyzing...</> : <><Lightbulb className="w-4 h-4 mr-2" />Run Analysis</>}
             </Button>
           </div>

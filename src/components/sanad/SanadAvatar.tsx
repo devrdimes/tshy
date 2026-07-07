@@ -90,7 +90,7 @@ export function SanadAvatar({ size = 'md', overrideState }: SanadAvatarProps) {
     <motion.div
       role="img"
       aria-label="Sanad AI Guide"
-      animate={activeAnim as object}
+      animate={activeAnim as any}
       className={`
         relative rounded-2xl flex items-center justify-center shrink-0
         bg-gradient-to-br ${STATE_COLORS[state]} shadow-lg ${STATE_SHADOW[state]}
@@ -101,7 +101,7 @@ export function SanadAvatar({ size = 'md', overrideState }: SanadAvatarProps) {
       {/* Glow ring */}
       <motion.div
         className="absolute inset-2 rounded-full bg-white/20 blur-sm"
-        animate={glowAnim as object}
+        animate={glowAnim as any}
         transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
       />
 

@@ -384,7 +384,7 @@ export function TasksView() {
               <SelectItem value="createdDate">Created</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={() => setShowNewTask(true)} className="bg-emerald-600 hover:bg-emerald-700 shadow-sm">
+          <Button onClick={() => setShowNewTask(true)} className="bg-emerald-600 hover:bg-emerald-700 shadow-sm" data-sanad-id="tasks-new-task">
             <Plus className="w-4 h-4 mr-2" />New Task
           </Button>
         </div>

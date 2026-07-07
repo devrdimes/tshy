@@ -336,7 +336,7 @@ export const ALL_GUIDES: Record<GuideId, GuideMeta> = {
     title: { en: 'Financials Tour', ar: 'جولة الماليات' },
     description: { en: 'Understand your numbers.', ar: 'افهم أرقامك.' },
     steps: [
-      { stepId: 'fi-01', targetId: 'financials-capital', route: null, message: { en: 'Enter your starting capital. This drives all financial projections.', ar: 'أدخل رأس المال الابتدائي. هذا يقود جميع التوقعات المالية.' }, arrowDirection: 'down', spotlight: true, glowTarget: true, requiredAction: 'informational', robotState: 'pointing', skippable: true },
+      { stepId: 'fi-01', targetId: 'financials-generate', route: null, message: { en: 'Click here to generate your financial projections based on your business data.', ar: 'انقر هنا لإنشاء توقعاتك المالية بناءً على بيانات عملك.' }, arrowDirection: 'up', spotlight: true, glowTarget: true, requiredAction: 'informational', robotState: 'pointing', skippable: true },
     ],
   },
   'milestones-tour': {
@@ -368,7 +368,7 @@ export const ALL_GUIDES: Record<GuideId, GuideMeta> = {
     title: { en: 'Pitch Deck Tour', ar: 'جولة العرض التقديمي' },
     description: { en: 'Create a professional investor presentation.', ar: 'أنشئ عرضاً تقديمياً احترافياً للمستثمرين.' },
     steps: [
-      { stepId: 'pd-01', targetId: 'pitch-deck-generate', route: null, message: { en: 'Generate your pitch deck from your saved business plan data.', ar: 'أنشئ عرضك التقديمي من بيانات خطة عملك المحفوظة.' }, arrowDirection: 'down', spotlight: true, glowTarget: true, requiredAction: 'informational', robotState: 'celebrate', skippable: true },
+      { stepId: 'pd-01', targetId: 'pitch-deck-generate', route: null, message: { en: 'Generate your pitch deck from your saved business plan data.', ar: 'أنشئ عرضك التقديمي من بيانات خطة عملك المحفوظة.' }, arrowDirection: 'down', spotlight: true, glowTarget: true, requiredAction: 'informational', robotState: 'celebrating', skippable: true },
     ],
   },
 }
