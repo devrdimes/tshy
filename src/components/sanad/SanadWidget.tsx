@@ -21,6 +21,8 @@ import React, { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 import { useSanadStore } from '@/lib/sanad-store'
+import { useSanadGuideStore } from '@/lib/sanad-guide-store'
+import { ONBOARDING_GUIDE } from '@/lib/sanad-guides'
 import { useAppStore } from '@/lib/store'
 import { SanadAvatar } from './SanadAvatar'
 import { SanadChatPanel } from './SanadChatPanel'
@@ -71,11 +73,12 @@ function getMockResponse(
 export function SanadWidget() {
   const {
     isOpen, isMinimized, hasUnread, isRtl, reducedMotion,
-    messages, open, toggle, markRead,
+    messages, open, toggle, markRead, minimize,
     addMessage, setThinking, setAnimationState,
     setReducedMotion, setIsRtl,
   } = useSanadStore()
 
+  const { startGuide } = useSanadGuideStore()
   const { language, currentBusiness } = useAppStore()
   const pathname = usePathname() ?? ''
 
@@ -109,6 +112,14 @@ export function SanadWidget() {
   // ── Phase 1 mock AI handler ──────────────────────────────────
   const handleUserMessage = (text: string) => {
     addMessage({ role: 'user', content: text })
+    
+    // Developer backdoor to test Phase 2
+    if (text.trim().toLowerCase() === '/tour') {
+      minimize()
+      startGuide('onboarding', ONBOARDING_GUIDE.steps)
+      return
+    }
+
     setThinking(true)
     setAnimationState('thinking')
 
