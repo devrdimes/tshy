@@ -1,207 +1,184 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { useSanadStore } from "@/lib/sanad-store"
-import { SanadAvatar } from "./SanadAvatar"
-import { X, Maximize2, Minimize2, Send, Paperclip } from "lucide-react"
-import { usePathname } from "next/navigation"
-import { useSanadContext } from "@/hooks/useSanadContext"
-import { HighlightOverlay } from "./HighlightOverlay"
+/**
+ * SanadWidget — Root floating container for the Sanad AI guide.
+ *
+ * Responsibilities:
+ * 1. Detect user's reduced-motion preference and sync to store.
+ * 2. Detect RTL from the existing app language store and sync.
+ * 3. Detect current route and expose to child components.
+ * 4. Gate visibility: never shows on /admin, /login, /signup.
+ * 5. Render floating avatar + speech bubble (when closed).
+ * 6. Render the chat panel (when open).
+ * 7. Handle mock AI responses for Phase 1 (real GLM in Phase 5).
+ *
+ * Positioning:
+ * - Desktop: bottom-right (or bottom-left in RTL)
+ * - Mobile:  above the native bottom bar (bottom-20 to clear system UI)
+ */
 
-export function SanadWidget() {
-  const { 
-    isOpen, isMinimized, reducedMotion, messages, isThinking, hasUnread, 
-    setOpen, setMinimized, addMessage, setThinking, markRead, setAnimationState
-  } = useSanadStore()
-  
-  const [inputText, setInputText] = useState("")
-  const [highlightId, setHighlightId] = useState<string | null>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const pathname = usePathname()
-  
-  // Activate context engine
-  const sanadContext = useSanadContext()
+import React, { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { usePathname } from 'next/navigation'
+import { useSanadStore } from '@/lib/sanad-store'
+import { useAppStore } from '@/lib/store'
+import { SanadAvatar } from './SanadAvatar'
+import { SanadChatPanel } from './SanadChatPanel'
+import { SanadSpeechBubble } from './SanadSpeechBubble'
 
-  // Don't show Sanad on the admin panel or auth pages
-  if (pathname?.startsWith('/admin') || pathname?.startsWith('/login') || pathname?.startsWith('/signup')) {
-    return null
+// ── Pages where Sanad should never appear ────────────────────────
+const HIDDEN_ROUTES = ['/admin', '/login', '/signup', '/reset-password']
+
+// ── Page-specific context messages (Phase 1 mock) ───────────────
+const PAGE_CONTEXT: Record<string, { en: string; ar: string }> = {
+  dashboard:       { en: 'Your business overview is here. Where would you like to start?', ar: 'نظرة عامة على أعمالك هنا. من أين تريد البدء؟' },
+  planner:         { en: 'This is your business roadmap. Let\'s work through it together.', ar: 'هذه خارطة طريق عملك. لنعمل عليها معاً.' },
+  tasks:           { en: 'Tasks turn your plan into daily action. What needs doing today?', ar: 'المهام تحوّل خطتك إلى عمل يومي. ما الذي يجب إنجازه اليوم؟' },
+  financials:      { en: 'Let\'s understand your costs, pricing, and runway together.', ar: 'لنفهم تكاليفك وتسعيرك ومدة تشغيلك معاً.' },
+  milestones:      { en: 'Milestones keep your business moving toward meaningful goals.', ar: 'المعالم تُبقي عملك يتجه نحو أهداف ذات معنى.' },
+  analysis:        { en: 'Business analysis shows what is strong and what needs attention.', ar: 'تحليل الأعمال يُظهر ما هو قوي وما يحتاج اهتماماً.' },
+  'idea-validator':{ en: 'Let\'s validate your idea before investing time or money.', ar: 'لنتحقق من صحة فكرتك قبل استثمار الوقت أو المال.' },
+  'pitch-deck':    { en: 'Create a professional pitch deck from the work you\'ve saved here.', ar: 'أنشئ عرضاً تقديمياً احترافياً من العمل الذي حفظته هنا.' },
+  notifications:   { en: 'Stay on top of your business updates and reminders.', ar: 'ابقَ على اطلاع بآخر تحديثات وتذكيرات عملك.' },
+  settings:        { en: 'Customise your Tashyeed workspace from here.', ar: 'خصّص مساحة عمل تشييد من هنا.' },
+}
+
+// ── Mock Phase 1 AI response ─────────────────────────────────────
+function getMockResponse(
+  userText: string,
+  page: string,
+  businessName: string | null,
+  isRtl: boolean
+): string {
+  const lower = userText.toLowerCase()
+  if (lower.includes('hello') || lower.includes('hi') || lower.includes('مرحبا') || lower.includes('السلام')) {
+    return isRtl
+      ? `مرحباً! أنا سند، مساعدك في التخطيط للأعمال. كيف يمكنني مساعدتك في ${businessName || 'عملك'} اليوم؟`
+      : `Hello! I am Sanad, your business planning guide. How can I help with ${businessName || 'your business'} today?`
   }
+  if (lower.includes('help') || lower.includes('مساعدة') || lower.includes('ساعد')) {
+    return isRtl
+      ? `يسعدني مساعدتك. أنت حالياً في صفحة ${page}. ما الذي تريد إنجازه؟`
+      : `I am here to help. You are currently on the ${page} page. What would you like to accomplish?`
+  }
+  const ctx = PAGE_CONTEXT[page]
+  return ctx
+    ? isRtl ? ctx.ar : ctx.en
+    : isRtl ? 'كيف يمكنني مساعدتك في عملك اليوم؟' : 'How can I assist with your business today?'
+}
 
-  // Auto-scroll chat
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+// ── Component ────────────────────────────────────────────────────
+export function SanadWidget() {
+  const {
+    isOpen, isMinimized, hasUnread, isRtl, reducedMotion,
+    messages, open, toggle, markRead,
+    addMessage, setThinking, setAnimationState,
+    setReducedMotion, setIsRtl,
+  } = useSanadStore()
+
+  const { language, currentBusiness } = useAppStore()
+  const pathname = usePathname() ?? ''
+
+  // ── Sync reduced-motion preference ──────────────────────────
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [messages, isOpen, isThinking])
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReducedMotion(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [setReducedMotion])
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!inputText.trim()) return
+  // ── Sync language → RTL ──────────────────────────────────────
+  useEffect(() => {
+    setIsRtl(language === 'ar')
+  }, [language, setIsRtl])
 
-    // Add user message
-    addMessage({
-      role: 'user',
-      content: inputText.trim()
-    })
-    
-    setInputText("")
+  // ── Dismiss speech bubble ────────────────────────────────────
+  const [bubbleDismissed, setBubbleDismissed] = useState(false)
+
+  // ── Gate: hide on restricted routes ─────────────────────────
+  const isHiddenRoute = HIDDEN_ROUTES.some((r) => pathname.startsWith(r))
+  if (isHiddenRoute) return null
+
+  // ── Derive current page slug ─────────────────────────────────
+  const pageSlug = pathname.split('/').filter(Boolean).pop() ?? 'dashboard'
+
+  // ── Derive latest assistant message for speech bubble ────────
+  const latestAssistant = messages.filter((m) => m.role === 'assistant').pop()
+
+  // ── Phase 1 mock AI handler ──────────────────────────────────
+  const handleUserMessage = (text: string) => {
+    addMessage({ role: 'user', content: text })
     setThinking(true)
-    setAnimationState('think')
+    setAnimationState('thinking')
 
-    // PHASE 2 Mock response with Context Awareness:
     setTimeout(() => {
+      const reply = getMockResponse(text, pageSlug, currentBusiness?.name ?? null, isRtl)
+      addMessage({ role: 'assistant', content: reply })
       setThinking(false)
       setAnimationState('idle')
-      
-      let response = `I understand. You are currently on the **${sanadContext.page}** page.`
-      if (sanadContext.businessName) {
-        response += ` We are working on **${sanadContext.businessName}**.`
-      }
-      
-      if (inputText.toLowerCase().includes('highlight') || inputText.toLowerCase().includes('where')) {
-        response += ` Let me point that out for you on the screen.`
-        setAnimationState('point')
-        // Mock highlighting the first major card or button
-        setHighlightId('main-content-area')
-      } else {
-        response += ` My recommendation is: ${sanadContext.suggestedAction}`
-      }
-
-      addMessage({
-        role: 'assistant',
-        content: response
-      })
-    }, 1500)
+    }, 1200)
   }
 
-  // Animation variants
-  const panelVariants = {
-    hidden: { opacity: 0, y: 20, scale: 0.95, pointerEvents: "none" as const },
-    visible: { opacity: 1, y: 0, scale: 1, pointerEvents: "auto" as const }
-  }
+  // ── Positioning classes (RTL-aware) ──────────────────────────
+  const positionClass = isRtl
+    ? 'left-4 md:left-6'
+    : 'right-4 md:right-6'
 
   return (
-    <>
-      <HighlightOverlay activeElementId={highlightId} onClose={() => { setHighlightId(null); setAnimationState('idle') }} />
-      
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none">
+    <div
+      className={`fixed z-[9998] flex flex-col items-end bottom-20 md:bottom-6 ${positionClass} pointer-events-none`}
+      dir={isRtl ? 'rtl' : 'ltr'}
+    >
+      {/* ── Chat panel ─────────────────────────────────────── */}
+      <AnimatePresence>
+        {isOpen && !isMinimized && (
+          <SanadChatPanel onUserMessage={handleUserMessage} />
+        )}
+      </AnimatePresence>
+
+      {/* ── Floating avatar row ─────────────────────────────── */}
+      <div className={`flex items-end gap-3 pointer-events-auto ${isRtl ? 'flex-row-reverse' : 'flex-row'}`}>
         
-        {/* Chat Panel */}
+        {/* Speech bubble — visible when panel is closed and there's an unread message */}
         <AnimatePresence>
-          {isOpen && !isMinimized && (
-            <motion.div
-              variants={panelVariants}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-              transition={{ duration: reducedMotion ? 0 : 0.2 }}
-              className="pointer-events-auto bg-card border border-border rounded-2xl shadow-2xl w-[350px] sm:w-[400px] h-[500px] max-h-[calc(100vh-100px)] flex flex-col overflow-hidden mb-4"
-            >
-              {/* Header */}
-              <div className="bg-gradient-to-r from-slate-900 to-slate-950 p-4 border-b border-border flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <SanadAvatar size="sm" />
-                  <div>
-                    <h3 className="font-bold text-white text-sm">Sanad</h3>
-                    <p className="text-[10px] text-emerald-400 font-medium tracking-wider uppercase">AI Co-Founder</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => setMinimized(true)}
-                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
-                  >
-                    <Minimize2 className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => setOpen(false)}
-                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Messages */}
-              <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-slate-950/50">
-                {messages.map((msg) => (
-                  <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                      msg.role === 'user' 
-                        ? 'bg-violet-600 text-white rounded-br-sm' 
-                        : 'bg-white dark:bg-slate-900 border border-border text-foreground rounded-bl-sm shadow-sm'
-                    }`}>
-                      {msg.content}
-                    </div>
-                    <span className="text-[10px] text-muted-foreground mt-1 px-1">
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                ))}
-                
-                {isThinking && (
-                  <div className="flex items-start">
-                    <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1 shadow-sm">
-                      <motion.div className="w-1.5 h-1.5 rounded-full bg-violet-500" animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, delay: 0 }} />
-                      <motion.div className="w-1.5 h-1.5 rounded-full bg-violet-500" animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, delay: 0.2 }} />
-                      <motion.div className="w-1.5 h-1.5 rounded-full bg-violet-500" animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, delay: 0.4 }} />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Input */}
-              <div className="p-3 bg-card border-t border-border">
-                <form onSubmit={handleSend} className="relative flex items-center">
-                  <button type="button" className="absolute left-3 text-muted-foreground hover:text-foreground">
-                    <Paperclip className="w-4 h-4" />
-                  </button>
-                  <input
-                    type="text"
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    placeholder="Ask Sanad for guidance..."
-                    className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-12 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500 transition-all"
-                  />
-                  <button 
-                    type="submit"
-                    disabled={!inputText.trim() || isThinking}
-                    className="absolute right-2 p-1.5 bg-violet-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-violet-700 transition-colors"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                </form>
-              </div>
-            </motion.div>
+          {(!isOpen || isMinimized) && hasUnread && latestAssistant && !bubbleDismissed && (
+            <SanadSpeechBubble
+              message={isRtl && PAGE_CONTEXT[pageSlug] ? PAGE_CONTEXT[pageSlug].ar : latestAssistant.content}
+              onOpen={() => { open(); setBubbleDismissed(false) }}
+              onDismiss={() => { setBubbleDismissed(true); markRead() }}
+            />
           )}
         </AnimatePresence>
 
-        {/* Floating Button / Avatar */}
-        <AnimatePresence>
+        {/* Floating avatar button */}
+        <AnimatePresence mode="wait">
           {(!isOpen || isMinimized) && (
             <motion.button
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-              onClick={() => { setOpen(true); setMinimized(false); markRead(); }}
-              className="pointer-events-auto relative group flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-violet-500 rounded-2xl"
+              key="sanad-fab"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ duration: reducedMotion ? 0 : 0.2, type: 'spring', stiffness: 320, damping: 22 }}
+              onClick={() => { toggle(); setBubbleDismissed(false) }}
+              className="
+                relative flex items-center justify-center
+                focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-500/40
+                rounded-2xl transition-transform hover:scale-105 active:scale-95
+                shadow-xl shadow-emerald-600/20
+              "
+              aria-label="Open Sanad AI Guide"
+              data-sanad-id="sanad-robot-button"
             >
-              {hasUnread && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-background rounded-full z-10" />
+              {/* Unread indicator */}
+              {hasUnread && !bubbleDismissed && (
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 border-2 border-background rounded-full z-10 animate-pulse" aria-label="Unread message" />
               )}
-              
               <SanadAvatar size="lg" />
-              
-              {/* Hover Tooltip */}
-              <div className="absolute right-full mr-4 bg-slate-900 text-white text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg pointer-events-none">
-                Need guidance?
-              </div>
             </motion.button>
           )}
         </AnimatePresence>
       </div>
-    </>
+    </div>
   )
 }
