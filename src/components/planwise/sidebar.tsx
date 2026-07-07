@@ -100,7 +100,7 @@ function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navI
 
       {/* Business Selector */}
       <div className="px-3 py-3">
-        <button onClick={() => setBizOpen(!bizOpen)} className={cn("w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-all", "bg-muted/80 hover:bg-accent border border-border hover:border-emerald-200 dark:hover:border-emerald-800")}>
+        <button onClick={() => setBizOpen(!bizOpen)} className={cn("w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-all", "bg-muted/80 hover:bg-accent border border-border hover:border-emerald-200 dark:hover:border-emerald-800")} data-sanad-id="business-selector">
           <Building2 className="w-4 h-4 text-emerald-600 shrink-0" />
           {sidebarOpen !== false ? (
             <>
@@ -116,7 +116,7 @@ function SidebarContent({ navItems, bizOpen, setBizOpen, setNewBizOpen }: { navI
                 {businesses.map((b) => (
                   <button key={b.id} onClick={() => { setCurrentBusiness(b); setBizOpen(false) }} className={cn("w-full text-left px-3 py-2 rounded-lg text-sm transition-all", currentBusiness?.id === b.id ? "bg-emerald-50 text-emerald-700 font-medium dark:bg-emerald-950 dark:text-emerald-400" : "hover:bg-accent text-muted-foreground hover:text-foreground")}>{b.name}</button>
                 ))}
-                <button onClick={() => { setBizOpen(false); setNewBizOpen(true) }} className="w-full text-left px-3 py-2 rounded-lg text-sm text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950 transition-colors flex items-center gap-2 font-medium">
+                <button onClick={() => { setBizOpen(false); setNewBizOpen(true) }} className="w-full text-left px-3 py-2 rounded-lg text-sm text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950 transition-colors flex items-center gap-2 font-medium" data-sanad-id="business-add-button">
                   <Plus className="w-4 h-4" /> Add Business
                 </button>
               </div>

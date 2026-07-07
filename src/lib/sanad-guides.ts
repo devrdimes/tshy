@@ -50,6 +50,7 @@ export interface GuideStep {
 export type GuideId =
   | 'onboarding'
   | 'dashboard-tour'
+  | 'business-tour'
   | 'planner-tour'
   | 'tasks-tour'
   | 'financials-tour'
@@ -57,6 +58,8 @@ export type GuideId =
   | 'analysis-tour'
   | 'idea-validator-tour'
   | 'pitch-deck-tour'
+  | 'notifications-tour'
+  | 'settings-tour'
 
 // ── Guide registry ───────────────────────────────────────────
 
@@ -314,6 +317,15 @@ export const DASHBOARD_TOUR: GuideMeta = {
 export const ALL_GUIDES: Record<GuideId, GuideMeta> = {
   'onboarding': ONBOARDING_GUIDE,
   'dashboard-tour': DASHBOARD_TOUR,
+  'business-tour': {
+    id: 'business-tour',
+    title: { en: 'Business Setup Tour', ar: 'جولة إعداد العمل' },
+    description: { en: 'Create or switch businesses.', ar: 'أنشئ أو بدّل الأعمال.' },
+    steps: [
+      { stepId: 'bz-01', targetId: 'business-selector', route: null, message: { en: 'Open this business selector to switch businesses or add a new one.', ar: 'افتح محدد الأعمال هنا للتبديل بين الأعمال أو إضافة عمل جديد.' }, arrowDirection: 'right', spotlight: true, glowTarget: true, requiredAction: 'click_target', robotState: 'pointing', skippable: true },
+      { stepId: 'bz-02', targetId: 'business-add-button', route: null, message: { en: 'Click Add Business to create a new guided business plan.', ar: 'انقر على إضافة عمل لإنشاء خطة عمل موجهة جديدة.' }, arrowDirection: 'right', spotlight: true, glowTarget: true, requiredAction: 'click_target', robotState: 'pointing', skippable: true },
+    ],
+  },
   'planner-tour': {
     id: 'planner-tour',
     title: { en: 'Planner Tour', ar: 'جولة المخطط' },
@@ -369,6 +381,22 @@ export const ALL_GUIDES: Record<GuideId, GuideMeta> = {
     description: { en: 'Create a professional investor presentation.', ar: 'أنشئ عرضاً تقديمياً احترافياً للمستثمرين.' },
     steps: [
       { stepId: 'pd-01', targetId: 'pitch-deck-generate', route: null, message: { en: 'Generate your pitch deck from your saved business plan data.', ar: 'أنشئ عرضك التقديمي من بيانات خطة عملك المحفوظة.' }, arrowDirection: 'down', spotlight: true, glowTarget: true, requiredAction: 'informational', robotState: 'celebrating', skippable: true },
+    ],
+  },
+  'notifications-tour': {
+    id: 'notifications-tour',
+    title: { en: 'Notifications Tour', ar: 'جولة التنبيهات' },
+    description: { en: 'Find reminders and business updates.', ar: 'اعثر على التذكيرات وتحديثات العمل.' },
+    steps: [
+      { stepId: 'nt-01', targetId: 'sidebar-notifications', route: null, message: { en: 'Open Notifications here to review reminders, alerts, and AI-generated business updates.', ar: 'افتح التنبيهات هنا لمراجعة التذكيرات والتنبيهات وتحديثات العمل.' }, arrowDirection: 'right', spotlight: true, glowTarget: true, requiredAction: 'click_target', robotState: 'pointing', skippable: true },
+    ],
+  },
+  'settings-tour': {
+    id: 'settings-tour',
+    title: { en: 'Settings Tour', ar: 'جولة الإعدادات' },
+    description: { en: 'Manage workspace preferences.', ar: 'أدر تفضيلات مساحة العمل.' },
+    steps: [
+      { stepId: 'st-01', targetId: 'sidebar-settings', route: null, message: { en: 'Open Settings here to manage account, workspace, language, and app preferences.', ar: 'افتح الإعدادات هنا لإدارة الحساب واللغة وتفضيلات التطبيق.' }, arrowDirection: 'right', spotlight: true, glowTarget: true, requiredAction: 'click_target', robotState: 'pointing', skippable: true },
     ],
   },
 }

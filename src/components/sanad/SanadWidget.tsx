@@ -22,7 +22,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 import { useSanadStore } from '@/lib/sanad-store'
 import { useSanadGuideStore } from '@/lib/sanad-guide-store'
-import { ONBOARDING_GUIDE } from '@/lib/sanad-guides'
+import { ALL_GUIDES, ONBOARDING_GUIDE, type GuideId } from '@/lib/sanad-guides'
 import { useAppStore } from '@/lib/store'
 import { chatWithSanad } from '@/lib/api'
 import { useSanadAutoTriggers } from '@/hooks/useSanadAutoTriggers'
@@ -32,6 +32,129 @@ import { SanadSpeechBubble } from './SanadSpeechBubble'
 
 // ── Pages where Sanad should never appear ────────────────────────
 const HIDDEN_ROUTES = ['/admin', '/login', '/signup', '/reset-password']
+
+type GuidedAppView =
+  | 'dashboard'
+  | 'planner'
+  | 'tasks'
+  | 'financials'
+  | 'milestones'
+  | 'analysis'
+  | 'idea-validator'
+  | 'pitch-deck'
+  | 'notifications'
+  | 'settings'
+
+type SanadGuidedAction = {
+  guideId: GuideId
+  view: GuidedAppView
+}
+
+const GUIDE_VIEW: Record<GuideId, GuidedAppView> = {
+  onboarding: 'dashboard',
+  'dashboard-tour': 'dashboard',
+  'business-tour': 'dashboard',
+  'planner-tour': 'planner',
+  'tasks-tour': 'tasks',
+  'financials-tour': 'financials',
+  'milestones-tour': 'milestones',
+  'analysis-tour': 'analysis',
+  'idea-validator-tour': 'idea-validator',
+  'pitch-deck-tour': 'pitch-deck',
+  'notifications-tour': 'notifications',
+  'settings-tour': 'settings',
+}
+
+const SANAD_ACTION_INTENTS: Array<{ guideId: GuideId; patterns: RegExp[] }> = [
+  {
+    guideId: 'business-tour',
+    patterns: [
+      /\b(new business|add business|create business|switch business|select business|business selector|company setup|new company)\b/i,
+    ],
+  },
+  {
+    guideId: 'tasks-tour',
+    patterns: [
+      /\b(task|tasks|todo|to-do|action item|next action|daily action|assign|due date)\b/i,
+    ],
+  },
+  {
+    guideId: 'financials-tour',
+    patterns: [
+      /\b(financial|financials|finance|projection|projections|revenue|expense|cost|pricing|runway|burn rate|profit|cash)\b/i,
+    ],
+  },
+  {
+    guideId: 'pitch-deck-tour',
+    patterns: [
+      /\b(pitch|deck|pitch deck|investor|presentation|fundraising|fund raise|slides)\b/i,
+    ],
+  },
+  {
+    guideId: 'idea-validator-tour',
+    patterns: [
+      /\b(validate|validator|idea validation|score my idea|viability|startup idea|business idea)\b/i,
+    ],
+  },
+  {
+    guideId: 'analysis-tour',
+    patterns: [
+      /\b(analysis|analyse|analyze|swot|strength|weakness|risk|recommendation|business health)\b/i,
+    ],
+  },
+  {
+    guideId: 'milestones-tour',
+    patterns: [
+      /\b(milestone|milestones|goal|goals|target|achievement|roadmap goal)\b/i,
+    ],
+  },
+  {
+    guideId: 'planner-tour',
+    patterns: [
+      /\b(planner|plan|business plan|roadmap|step|steps|checklist|continue planning|start planning)\b/i,
+    ],
+  },
+  {
+    guideId: 'notifications-tour',
+    patterns: [
+      /\b(notification|notifications|alert|alerts|reminder|reminders|updates)\b/i,
+    ],
+  },
+  {
+    guideId: 'settings-tour',
+    patterns: [
+      /\b(settings|preference|preferences|account|profile|language|theme|password|sign out|logout)\b/i,
+    ],
+  },
+  {
+    guideId: 'dashboard-tour',
+    patterns: [
+      /\b(dashboard|overview|home|health score|progress|summary|stats)\b/i,
+    ],
+  },
+  {
+    guideId: 'onboarding',
+    patterns: [
+      /\b(how do i use|how to use|use this saas|use the saas|get started|getting started|show me around|walk me through|tour|guide me|help me navigate)\b/i,
+    ],
+  },
+]
+
+function resolveSanadGuidedAction(userText: string): SanadGuidedAction | null {
+  const text = userText.trim()
+  if (!text) return null
+
+  const match = SANAD_ACTION_INTENTS.find((intent) =>
+    intent.patterns.some((pattern) => pattern.test(text))
+  )
+
+  if (!match) return null
+
+  return {
+    guideId: match.guideId,
+    view: GUIDE_VIEW[match.guideId],
+  }
+}
 
 // ── Page-specific context messages (Phase 1 mock) ───────────────
 const PAGE_CONTEXT: Record<string, { en: string; ar: string }> = {
@@ -81,7 +204,7 @@ export function SanadWidget() {
   } = useSanadStore()
 
   const { startGuide } = useSanadGuideStore()
-  const { language, currentBusiness, currentStep, tasks } = useAppStore()
+  const { language, currentBusiness, currentStep, tasks, activeView, setActiveView } = useAppStore()
   const pathname = usePathname() ?? ''
 
   // Fire auto-triggers
@@ -109,10 +232,23 @@ export function SanadWidget() {
   if (isHiddenRoute) return null
 
   // ── Derive current page slug ─────────────────────────────────
-  const pageSlug = pathname.split('/').filter(Boolean).pop() ?? 'dashboard'
+  const pageSlug = activeView === 'landing' || activeView === 'onboarding' ? 'dashboard' : activeView
 
   // ── Derive latest assistant message for speech bubble ────────
   const latestAssistant = messages.filter((m) => m.role === 'assistant').pop()
+
+  const launchGuidedAction = (action: SanadGuidedAction) => {
+    minimize()
+    setBubbleDismissed(true)
+
+    if (activeView !== action.view) {
+      setActiveView(action.view)
+    }
+
+    window.setTimeout(() => {
+      startGuide(action.guideId, ALL_GUIDES[action.guideId].steps)
+    }, activeView === action.view ? 250 : 700)
+  }
 
   // ── Phase 1 mock AI handler ──────────────────────────────────
   const handleUserMessage = async (text: string) => {
@@ -122,6 +258,18 @@ export function SanadWidget() {
     if (text.trim().toLowerCase() === '/tour') {
       minimize()
       startGuide('onboarding', ONBOARDING_GUIDE.steps)
+      return
+    }
+
+    const guidedAction = resolveSanadGuidedAction(text)
+    if (guidedAction) {
+      addMessage({
+        role: 'assistant',
+        content: isRtl
+          ? 'سأعرض لك ذلك بالأسهم على الشاشة الآن.'
+          : 'I will show you with arrows on the screen now.',
+      })
+      launchGuidedAction(guidedAction)
       return
     }
 
